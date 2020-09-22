@@ -533,13 +533,11 @@ def find_unique_cubes(matrix, save_name):
     for two_simplex in tqdm(itertools.combinations(range(matrix.shape[0]), 3)):
         cont_cube = get_cont_cube(two_simplex[0], two_simplex[1], two_simplex[2], matrix)
 
-
-        if not find_if_invalid(cont_cube):
-            table_str = str(int(cont_cube[0, 0, 0])) + '_' + str(int(cont_cube[0, 0, 1])) + '_' + str(
-                int(cont_cube[0, 1, 0])) + '_' + str(int(cont_cube[0, 1, 1])) + '_' + str(
-                int(cont_cube[1, 0, 0])) + '_' + str(int(cont_cube[1, 0, 1])) + '_' + str(
-                int(cont_cube[1, 1, 0])) + '_' + str(int(cont_cube[1, 1, 1]))
-            table_set.add(table_str)
+        table_str = str(int(cont_cube[0, 0, 0])) + '_' + str(int(cont_cube[0, 0, 1])) + '_' + str(
+            int(cont_cube[0, 1, 0])) + '_' + str(int(cont_cube[0, 1, 1])) + '_' + str(
+            int(cont_cube[1, 0, 0])) + '_' + str(int(cont_cube[1, 0, 1])) + '_' + str(
+            int(cont_cube[1, 1, 0])) + '_' + str(int(cont_cube[1, 1, 1]))
+        table_set.add(table_str)
 
     table_set = list(table_set)
     print('How many different cubes : ', len(table_set))
@@ -740,8 +738,14 @@ def triangles_p_values_tuple_dictionary(csvfile, savename, dictionary, matrix):
 
             row.sort()
             row = tuple(row)
+            cont_cube = get_cont_cube(row[0], row[1], row[2], matrix)
+
+            table_str = str(int(cont_cube[0, 0, 0])) + '_' + str(int(cont_cube[0, 0, 1])) + '_' + str(
+                int(cont_cube[0, 1, 0])) + '_' + str(int(cont_cube[0, 1, 1])) + '_' + str(
+                int(cont_cube[1, 0, 0])) + '_' + str(int(cont_cube[1, 0, 1])) + '_' + str(
+                int(cont_cube[1, 1, 0])) + '_' + str(int(cont_cube[1, 1, 1]))
             try :
-                chi2, p = dictionary[row]
+                chi2, p = dictionary[table_str]
                 writer.writerow([row[0], row[1], row[2], p])
             except:
                 pass
@@ -755,14 +759,14 @@ if __name__ == '__main__':
 
     # Choose the name of the directory (dirName) where to save the files and the 'prefix' name of each created files
     # (data_name)
-    dirName = 'New_directory'
-    data_name = 'Data'
+    dirName = 'bird_test_asympt'
+    data_name = 'birdn185'
 
     # Choose the alpha parameter to use throughout the analysis.
     alpha = 0.01
 
     # Enter the path to the presence/absence matrix :
-    matrix1 = np.load(r'PATH')
+    matrix1 = np.load(r'D:\Users\Xavier\Documents\HOLMES\HOLMES\Data analysis\Birds_N185_bam.npy')
     matrix1 = matrix1.astype(np.int64)
 
     # Create target Directory if don't exist
