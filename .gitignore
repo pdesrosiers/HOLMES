@@ -1,0 +1,8 @@
+.DS_Store
+
+# Pycharm
+.idea
+__pycache__/
+
+jsonfiles/
+
