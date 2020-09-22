@@ -406,7 +406,8 @@ def find_unique_tables(matrix, save_name):
 
 def pvalues_for_tables(file_name, nb_samples, N):
     """
-    Find the p-values for the unique contingency tables found with the function find_unique_tables
+    Find the p-values for the unique contingency tables found with the function find_unique_tables. To do so, it
+    generates the exact distribution of the statistic. This distribution has 1 degree of freedom.
     :param file_name: (str) Path to the file obtained with the function find_unique_tables. This also acts as a
                             savename for the dictionary table : (chi^2 statistics, p-value). The keys of the dictionary
                             are actually strings where we flattened the 2X2 contingency table and separate each entry
@@ -617,7 +618,8 @@ def find_unique_cubes(matrix, save_name):
 
 def pvalues_for_cubes(file_name, nb_samples, N):
     """
-    Find the p-values for the unique contingency cubes found with the function find_unique_cubes
+    Find the p-values for the unique contingency cubes found with the function find_unique_cubes. To do so, it
+    generates the exact distribution of the statistic. This distribution has 1 degree of freedom.
     :param file_name: (str) Path to the file obtained with the function find_unique_cubes. This also acts as a
                             savename for the dictionary table : (chi^2 statistics, p-value). The keys of the dictionary
                             are actually strings where we flattened the 2X2X2 contingency cubes and separate each entry
@@ -668,7 +670,6 @@ def pvalues_for_cubes(file_name, nb_samples, N):
                     if len(chisqlist) == nb_samples:
 
                         pvaldictio[table_id] = sampled_chisq_test(table, expected_original, chisqlist)
-                        print('FOUNDONE', table_id)
                     else:
                         continue
                         #pvaldictio[table_id] = (0.0, 1.0)
@@ -921,7 +922,6 @@ if __name__ == '__main__':
 
         significant_triplet_from_csv(data_name + '_exact_cube_pvalues.csv', alpha, data_name + '_exact_hyperlinks_'  + str(alpha)[2:])
 
-        exit()
 
     else:
         print('Step Method : ')

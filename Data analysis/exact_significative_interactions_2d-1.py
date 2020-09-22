@@ -374,46 +374,16 @@ def extract_phi_for_triangles(csvfilename):
 
     return [pure_negative_count, one_pos_two_neg, two_pos_one_neg, pure_positive_count]
 
-def extract_2_simplex_from_csv_dictionary(alpha,  matrix, dictionary, csvfilename, savename):
-
-    with open(csvfilename, 'r') as csvfile, open(savename + '.csv', 'w',  newline='') as fout:
-        reader = csv.reader(csvfile)
-        writer = csv.writer(fout)
-        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'phi 1-2', 'phi 1-3', 'phi 2-3', 'p-value']])
-        next(reader)
-        for row in tqdm(reader):
-            computed_cont_table = get_cont_cube(int(row[0]), int(row[1]), int(row[2]), matrix)
-            table_str = str(int(computed_cont_table[0, 0, 0])) + '_' + str(
-                int(computed_cont_table[0, 0, 1])) + '_' + str(int(computed_cont_table[0, 1, 0])) + '_' + str(
-                int(computed_cont_table[0, 1, 1])) + '_' + str(int(computed_cont_table[1, 0, 0])) + '_' + str(
-                int(computed_cont_table[1, 0, 1])) + '_' + str(int(computed_cont_table[1, 1, 0])) + '_' + str(
-                int(computed_cont_table[1, 1, 1]))
-            p = dictionary[table_str][1]
-            try:
-                if p < alpha:
-                    writer = csv.writer(fout)
-                    writer.writerow([int(row[0]), int(row[1]), int(row[2]), float(row[3]), float(row[4]), float(row[5]), p])
-            except:
-                pass
-
-
-def extract_converged_triangles(csvfilename, savename):
-
-    with open(csvfilename, 'r') as csvfile, open(savename + '.csv', 'w',  newline='') as fout:
-        reader = csv.reader(csvfile)
-        writer = csv.writer(fout)
-        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'phi 1-2', 'phi 1-3', 'phi 2-3', 'p-value']])
-        next(reader)
-        for row in tqdm(reader):
-            try :
-                p = float(row[6])
-                writer = csv.writer(fout)
-                writer.writerow([int(row[0]), int(row[1]), int(row[2]), float(row[3]), float(row[4]), float(row[5]), p])
-            except:
-                pass
-
 
 def find_unique_tables(matrix, save_name):
+    """
+    Find the unique contingency tables in the dataset. Sometimes, the number of of unique contingency tables is lower
+    than the number of pairs we can create. Thus, we can save time be first running this function (especially if there
+    are many pairs we can create).
+    :param matrix: (np.array of ints) Presence/absence matrix
+    :param save_name: (str) Name of the csv file where we save information
+    :return:
+    """
 
     table_set = set()
 
@@ -427,8 +397,8 @@ def find_unique_tables(matrix, save_name):
         table_str = str(computed_cont_table[0, 0]) + '_' + str(computed_cont_table[0, 1]) + '_' + str(
             computed_cont_table[1, 0]) + '_' + str(computed_cont_table[1, 1])
 
-        table_set.add(table_str)
-
+        if table_str not in table_set:
+            table_set.add(table_str)
 
     table_set = list(table_set)
     print('How many different tables : ', len(table_set))
@@ -436,6 +406,24 @@ def find_unique_tables(matrix, save_name):
 
 
 def pvalues_for_tables(file_name, nb_samples, N):
+    """
+    Find the p-values for the unique contingency tables found with the function find_unique_tables. To do so, it
+    generates the exact distribution of the statistic. This distribution has 3 degrees of freedom.
+    :param file_name: (str) Path to the file obtained with the function find_unique_tables. This also acts as a
+                            savename for the dictionary table : (chi^2 statistics, p-value). The keys of the dictionary
+                            are actually strings where we flattened the 2X2 contingency table and separate each entry
+                            by underscores.
+    :return: None
+    TODO : To distinguish cases where we can't compute the pvalue from cases where the pvalue is actually 0, we should
+    change the first conditional block (if not find_if_invalid_table(table):)
+                else:
+                pvaldictio[table_id] = (0.0, 1.0)
+    for something like :
+                 else:
+                pvaldictio[table_id] = (0.0, None)
+
+    and check every other step of the process so that this 'None' entry in the CSV file can be ignored by the functions
+    """
 
     with open(file_name + "_table_list.json") as json_file:
         table_set = json.load(json_file)
@@ -470,6 +458,12 @@ def pvalues_for_tables(file_name, nb_samples, N):
 
 @jit(nopython=True)
 def find_if_invalid_table(cont_table):
+    """
+    Find if there are zero entries in the sufficient configurations of the table. If so, the table is invalid for
+    computation of the p-value (MLE does not exist)
+    :param cont_table: (np.array) a 2X2 contingency table
+    :return: 1 if table is invalide, 0 otherwise.
+    """
     x_j = np.sum(cont_table, axis=0)
     if np.count_nonzero(x_j) != 2:
         return 1
@@ -481,6 +475,13 @@ def find_if_invalid_table(cont_table):
 
 @jit(nopython=True)
 def find_if_invalid_cube(cont_cube):
+    """
+    Find if there are zero entries in the sufficient configurations of the table. If so, the table is invalid for
+    computation of the p-value (MLE does not exist)
+
+    :param cont_cube: (np.array) a 2X2X2 contingency table
+    :return: 1 if table is invalide, 0 otherwise.
+    """
     xij_ = np.sum(cont_cube, axis=0)
     if np.count_nonzero(xij_) != 4:
         return 1
@@ -542,6 +543,17 @@ def find_if_invalid_cube(cont_cube):
 
 
 def save_pairwise_p_values_phi_dictionary(bipartite_matrix, dictionary, savename):
+    """
+    Find the p-values of pairs of elements in the presence/absence matrix. To run this function, we need to find the
+    unique tables with pvalues_for_tables.
+    :param bipartite_matrix: (np.array of ints) Presence/absence matrix
+    :param dictionary: (dictionary) Dictionary obtained with the function pvalues_for_tables. This dictionary has the
+                                    format table : (chi^2 statistics, p-value). The keys of the dictionary are actually
+                                    strings representing the entry of a flattened contingency table separated by
+                                    underscores
+    :param savename: (str) Name of the csv file where we save information
+    :return: None
+    """
 
     # create a CSV file
     with open(savename+'.csv', 'w', newline='') as csvFile:
@@ -568,7 +580,16 @@ def save_pairwise_p_values_phi_dictionary(bipartite_matrix, dictionary, savename
         writer.writerows(buffer)
 
 
+
 def find_unique_cubes(matrix, save_name):
+    """
+    Find the unique contingency cubes in the dataset. Sometimes, the number of of unique cubes is lower
+    than the number of triplets we can create. Thus, we can save time be first running this function (especially if there
+    are many triplets we can create).
+    :param matrix: (np.array of ints) Presence/absence matrix
+    :param save_name: (str) Name of the csv file where we save information
+    :return: None
+    """
 
     table_set = set()
 
@@ -584,6 +605,17 @@ def find_unique_cubes(matrix, save_name):
     json.dump(table_set, open(save_name + "_cube_list.json", 'w'))
 
 def pvalues_for_cubes(file_name, nb_samples, N):
+    """
+    Find the p-values for the unique contingency cubes found with the function find_unique_cubes. To do so, it
+    generates the exact distribution of the statistic. This distribution has 7 degrees of freedom.
+    :param file_name: (str) Path to the file obtained with the function find_unique_cubes. This also acts as a
+                            savename for the dictionary table : (chi^2 statistics, p-value). The keys of the dictionary
+                            are actually strings where we flattened the 2X2X2 contingency cubes and separate each entry
+                            by underscores.
+    :param nb_samples: (int) Number of samples that we want to generate the exact distribution
+    :param N:  (int) Number of observations we want in each sampled contingency tables.
+    :return: None
+    """
 
     with open(file_name + '_cube_list.json') as json_file:
         table_set = json.load(json_file)
@@ -596,6 +628,7 @@ def pvalues_for_cubes(file_name, nb_samples, N):
             switch = False
             table_id = table_set[it]
             table = np.random.rand(2, 2, 2)
+            #TODO : XRP LOOK FOR HARDCODED STUFF (above and below)
             table_id = '123_53_1_0_6_1_0_1'
             table_id_list = str.split(table_id, '_')
             table[0, 0, 0] = int(table_id_list[0])
@@ -631,6 +664,17 @@ def pvalues_for_cubes(file_name, nb_samples, N):
 
 
 def save_triplets_p_values_dictionary(bipartite_matrix, dictionary, savename):
+    """
+    Find the p-values of triplets of elements in the presence/absence matrix. To run this function, we need to find the
+    unique cubes with pvalues_for_cubes.
+    :param bipartite_matrix: (np.array of ints) Presence/absence matrix
+    :param dictionary: (dictionary) Dictionary obtained with the function pvalues_for_cubes. This dictionary has the
+                                    format table : (chi^2 statistics, p-value). The keys of the dictionary are actually
+                                    strings representing the entry of a flattened contingency table separated by
+                                    underscores
+    :param savename: (str) Name of the csv file where we save information
+    :return: None
+    """
 
     # create a CSV file
     with open(savename +'.csv', 'w', newline='') as csvFile:
@@ -654,7 +698,14 @@ def save_triplets_p_values_dictionary(bipartite_matrix, dictionary, savename):
             writer.writerow([two_simplex[0], two_simplex[1], two_simplex[2], p])
 
 
-def two_simplex_from_csv(csvfilename, alpha, savename):
+def significant_triplet_from_csv(csvfilename, alpha, savename):
+    """
+    Extract the significant triplets (triplets with p-value < alpha)
+    :param csvfilename: (str) Path to the file obtained with the function save_triplets_p_values_dictionary.
+    :param alpha: (float) Threshold of significance
+    :param savename: (str) Name of the csv file where we save information
+    :return: None
+    """
 
     with open(csvfilename, 'r') as csvfile, open(savename + '.csv', 'w',  newline='') as fout:
         reader = csv.reader(csvfile)
@@ -670,7 +721,17 @@ def two_simplex_from_csv(csvfilename, alpha, savename):
             except:
                 pass
 
-def build_facet_list(matrix, two_simplices_file, one_simplices_file, alpha):
+def build_simplices_list(matrix, two_simplices_file, one_simplices_file, alpha):
+    """
+    Build a CSV file containing all zero, one and two simplices that are significant. To obtain a facet list, we would
+    need to remove the included ' facets ' using the '' prune '' function in the SCM package.
+    (See https://github.com/jg-you/scm for the prune function)
+    :param matrix: (np.array) Presence/absence matrix
+    :param two_simplices_file: CSV file where either candidates for hyperlinks or for 2-simplices are found
+    :param one_simplices_file: CSV file where candidates for links (1-simplices) are found
+    :param alpha:   (float) Threshold of significance
+    :return:
+    """
     #open('facet_list.txt', 'a').close()
 
     with open('facet_list.txt', 'w') as facetlist:
@@ -713,9 +774,20 @@ def build_facet_list(matrix, two_simplices_file, one_simplices_file, alpha):
                     pass
     return
 
-def triangles_p_values_AB_AC_BC_dictionary(csvfile, savename, dictionary, matrix, bufferlimit=100000):
+def triangles_p_values_AB_AC_BC_dictionary(csvfile, savename, dictionary, matrix):
 
-    buffer = []
+    """
+    Fetches the p-values of triplets that form a triangle after the first step of the method.
+    :param csvfile: (str) Path to the file obtained with the function save_all_triangles.
+    :param savename: (str) Name of the csv file where we save information
+    :param dictionary: (dictionary) Dictionary obtained with the function pvalues_for_cubes. This dictionary has the
+                                    format table : (chi^2 statistics, p-value). The keys of the dictionary are actually
+                                    strings representing the entry of a flattened contingency table separated by
+                                    underscores
+    :param matrix: (np.array of ints) Presence/absence matrix
+    :return: None
+    """
+
 
     with open(csvfile, 'r') as csvfile, open(savename, 'w',  newline='') as fout:
         reader = csv.reader(csvfile)
@@ -745,35 +817,25 @@ def triangles_p_values_AB_AC_BC_dictionary(csvfile, savename, dictionary, matrix
 
             writer.writerow([row[0], row[1], row[2], p])
 
-
-def extract_2_simplex_from_csv(csvfilename, alpha, savename):
-
-    with open(csvfilename, 'r') as csvfile, open(savename + '.csv', 'w',  newline='') as fout:
-        reader = csv.reader(csvfile)
-        writer = csv.writer(fout)
-        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'p-value']])
-        next(reader)
-        for row in tqdm(reader):
-            try :
-                p = float(row[-1])
-                if p < alpha:
-                    writer = csv.writer(fout)
-                    writer.writerow([int(row[0]), int(row[1]), int(row[2]), p])
-            except:
-                pass
-
-
-
 if __name__ == '__main__':
+    # Options to decide if we use the step method (recommended) or the systematic method (longer and does not create
+    # a simplicial complex. Use step_method = False for this one)
     step_method = True
-    dirName = 'Birds_N185'
-    data_name = 'birdsN185'
 
+    # Choose the name of the directory (dirName) where to save the files and the 'prefix' name of each created files
+    # (data_name)
+    dirName = 'New_directory'
+    data_name = 'Data'
+
+    # Choose the alpha parameter to use throughout the analysis.
     alpha = 0.01
+
+    # Number of samples that will generate our exact distribution (higher is better, but more time consuming)
     nb_samples = 1000000
-    matrix1 = np.load(r'D:\Users\Xavier\Documents\Analysis_master\Real-Analysis\April_analysis\Birds_N185\Birds_N185_bam.npy')
-    matrix1 = matrix1.astype(np.int32)
-    print(matrix1.shape)
+
+    # Enter the path to the presence/absence matrix :
+    matrix1 = np.load(r'PATH')
+    matrix1 = matrix1.astype(np.int64)
 
     #build_facet_list(matrix1, r'D:\Users\Xavier\Documents\Analysis_master\Analysis\clean_analysis\vOTUS\vOTUS_exact_cube_pvalues.csv', r'D:\Users\Xavier\Documents\Analysis_master\Analysis\clean_analysis\vOTUS\vOTUS_exact_pvalues.csv', 0.01 )
     #exit()
@@ -787,52 +849,52 @@ if __name__ == '__main__':
     data_name = os.path.join(dirName, data_name)
 
 
-    ####### First step : Extract all the unique tables
+    ###### First step : Extract all the unique tables
 
-    #print('Step 1 : Extract all the unique tables')
+    print('Step 1 : Extract all the unique tables')
 
-    ## Finds all unique tables
-    #find_unique_tables(matrix1, data_name)
+    # Finds all unique tables
+    find_unique_tables(matrix1, data_name)
 
-    ######### Second step : Extract pvalues for all tables with an exact Chi3 distribution
+    ######## Second step : Extract pvalues for all tables with an exact Chi3 distribution
 
-    #print('Step 2: Extract pvalues for all tables with an exact Chi3 distribution')
+    print('Step 2: Extract pvalues for all tables with an exact Chi3 distribution')
 
-    #pvalues_for_tables(data_name, nb_samples, matrix1.shape[1])
-    #exit()
+    pvalues_for_tables(data_name, nb_samples, matrix1.shape[1])
+    exit()
 
-    ######### Third step : Find table for all links and their associated pvalue
+    ######## Third step : Find table for all links and their associated pvalue
 
-    #print('Step 3 : Find table for all links and their associated pvalue')
+    print('Step 3 : Find table for all links and their associated pvalue')
 
-    #with open(data_name + '_exact_pval_dictio.json') as jsonfile:
-    #    dictio = json.load(jsonfile)
+    with open(data_name + '_exact_pval_dictio.json') as jsonfile:
+        dictio = json.load(jsonfile)
 
-    #    save_pairwise_p_values_phi_dictionary(matrix1, dictio, data_name + '_exact_pvalues')
+        save_pairwise_p_values_phi_dictionary(matrix1, dictio, data_name + '_exact_pvalues')
 
 
-    ######### Fourth step : Choose alpha and extract the network
+    ######## Fourth step : Choose alpha and extract the network
 
-    #print('Step 4 : Generate network and extract edge_list for a given alpha')
+    print('Step 4 : Generate network and extract edge_list for a given alpha')
 
-    #g = read_pairwise_p_values(data_name + '_exact_pvalues.csv', alpha)
-    #nx.write_edgelist(g, data_name + '_exact_edge_list_' + str(alpha)[2:] + '.txt', data=True)
+    g = read_pairwise_p_values(data_name + '_exact_pvalues.csv', alpha)
+    nx.write_edgelist(g, data_name + '_exact_edge_list_' + str(alpha)[2:] + '.txt', data=True)
 
-    #print('Number of nodes : ', g.number_of_nodes())
-    #print('Number of links : ', g.number_of_edges())
+    print('Number of nodes : ', g.number_of_nodes())
+    print('Number of links : ', g.number_of_edges())
 
-    ######### Fifth step : Extract all the unique cubes
+    ######## Fifth step : Extract all the unique cubes
 
-    #print('Step 5 : Extract all the unique cubes')
+    print('Step 5 : Extract all the unique cubes')
 
-    #find_unique_cubes(matrix1, data_name)
+    find_unique_cubes(matrix1, data_name)
 
-    ####### Sixth step : Extract pvalues for all cubes with an exact CHI 7 distribution
+    ###### Sixth step : Extract pvalues for all cubes with an exact CHI 7 distribution
 
     print('Step 6: Extract pvalues for all tables with an exact CHI 7 distribution')
 
     pvalues_for_cubes(data_name, nb_samples, matrix1.shape[1])
-    exit()
+
 
     ######## Seventh step : Find cube for all triplets and their associated pvalue
 
@@ -845,15 +907,11 @@ if __name__ == '__main__':
 
             save_triplets_p_values_dictionary(matrix1, dictio, data_name + '_exact_cube_pvalues')
 
-        two_simplex_from_csv(data_name + '_exact_cube_pvalues.csv', alpha, data_name + '_exact_two_simplices_'  + str(alpha)[2:])
+        significant_triplet_from_csv(data_name + '_exact_cube_pvalues.csv', alpha, data_name + '_exact_two_simplices_'  + str(alpha)[2:])
 
-        exit()
 
     else:
         print('Step Method : ')
-
-    ############## OLD WAY : FIND EMPTY TRIANGLES AND TEST THEM : ###################
-
 
     ######## Fifth step : Find all triangles in the previous network
 
@@ -872,15 +930,12 @@ if __name__ == '__main__':
         with open(data_name + "_exact_cube_pval_dictio.json") as jsonfile:
             dictio = json.load(jsonfile)
 
-            triangles_trymodel(data_name + '_exact_triangles_' + str(alpha)[2:] + '.csv', 'bidon', dictio, matrix1)
-            exit()
-
             triangles_p_values_AB_AC_BC_dictionary(data_name + '_exact_triangles_' + str(alpha)[2:] + '.csv', data_name + '_exact_triangles_' + str(alpha)[2:] + '_pvalues.csv', dictio, matrix1)
 
     ######## Fifth step : Extract all 2-simplices
 
         print('Extract 2-simplices')
 
-        extract_2_simplex_from_csv(data_name + '_exact_triangles_' + str(alpha)[2:] + '_pvalues.csv', alpha, data_name + '_exact_2-simplices_' + str(alpha)[2:])
+        significant_triplet_from_csv(data_name + '_exact_triangles_' + str(alpha)[2:] + '_pvalues.csv', alpha, data_name + '_exact_2-simplices_' + str(alpha)[2:])
 
     ################# DONE ###################
