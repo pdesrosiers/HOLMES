@@ -533,14 +533,15 @@ def find_unique_cubes(matrix, save_name):
     for two_simplex in tqdm(itertools.combinations(range(matrix.shape[0]), 3)):
         cont_cube = get_cont_cube(two_simplex[0], two_simplex[1], two_simplex[2], matrix)
 
-        table_str = str(int(cont_cube[0, 0, 0])) + '_' + str(int(cont_cube[0, 0, 1])) + '_' + str(
-            int(cont_cube[0, 1, 0])) + '_' + str(int(cont_cube[0, 1, 1])) + '_' + str(
-            int(cont_cube[1, 0, 0])) + '_' + str(int(cont_cube[1, 0, 1])) + '_' + str(
-            int(cont_cube[1, 1, 0])) + '_' + str(int(cont_cube[1, 1, 1]))
-        table_set.add(table_str)
+        if not find_if_invalid_cube(cont_cube):
+            table_str = str(int(cont_cube[0, 0, 0])) + '_' + str(int(cont_cube[0, 0, 1])) + '_' + str(
+                int(cont_cube[0, 1, 0])) + '_' + str(int(cont_cube[0, 1, 1])) + '_' + str(
+                int(cont_cube[1, 0, 0])) + '_' + str(int(cont_cube[1, 0, 1])) + '_' + str(
+                int(cont_cube[1, 1, 0])) + '_' + str(int(cont_cube[1, 1, 1]))
+            table_set.add(table_str)
 
     table_set = list(table_set)
-    print('How many different cubes : ', len(table_set))
+    print('How many different valid cubes : ', len(table_set))
     json.dump(table_set, open(save_name + "_cube_list.json", 'w'))
 
 def get_pairwise_pvalue_lower_than_alpha(matrix, save_name, alpha=0.01):
@@ -588,13 +589,13 @@ def count_impossible_triplets(matrix):
     for two_simplex in tqdm(itertools.combinations(range(matrix.shape[0]), 3)):
 
         cont_cube = get_cont_cube(two_simplex[0], two_simplex[1], two_simplex[2], matrix)
-        count += find_if_invalid(cont_cube)
+        count += find_if_invalid_cube(cont_cube)
 
     print('Number of invalid cubes : ', count)
     return count
 
 @jit(nopython=True)
-def find_if_invalid(cont_cube):
+def find_if_invalid_cube(cont_cube):
     """
     Function used to know whether a sufficient configuration contains a zero (which indicates an invalid table).
     :param cont_cube: (np.array of ints) 2X2X2 contingency cube.
@@ -686,7 +687,8 @@ def save_triplets_p_values_dictionary(bipartite_matrix, dictionary, savename):
             try :
                 chi2, p = dictionary[table_str]
             except:
-                p = dictionary[table_str]
+                #TODO Change for None?
+                chi2, p = 0.0, 1.0
 
             writer.writerow([two_simplex[0], two_simplex[1], two_simplex[2], p])
 
@@ -755,18 +757,18 @@ if __name__ == '__main__':
 
     # Options to decide if we use the step method (recommended) or the systematic method (longer and does not create
     # a simplicial complex. Use step_method = False for this one)
-    step_method = True
+    step_method = False
 
     # Choose the name of the directory (dirName) where to save the files and the 'prefix' name of each created files
     # (data_name)
-    dirName = 'New_directory'
-    data_name = 'Data'
+    dirName = 'bird_test_asympt'
+    data_name = 'birdn185'
 
     # Choose the alpha parameter to use throughout the analysis.
     alpha = 0.01
 
     # Enter the path to the presence/absence matrix :
-    matrix1 = np.load(r'PATH')
+    matrix1 = np.load(r'D:\Users\Xavier\Documents\HOLMES\HOLMES\Data analysis\Birds_N185_bam.npy')
     matrix1 = matrix1.astype(np.int64)
 
     # Create target Directory if don't exist
@@ -815,7 +817,7 @@ if __name__ == '__main__':
 
     ######### Fifth step : Extract all the unique cubes
 
-    print('Step 5 : Extract all the unique cubes')
+    print('Step 5 : Extract all the unique valid cubes')
 
     find_unique_cubes(matrix1, data_name)
 
