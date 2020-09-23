@@ -13,6 +13,14 @@ import matplotlib.pyplot as plt
 ######### tests préliminaires
 
 def mle_multinomial_from_table(cont_table, N):
+    """
+    Returns the maximum likelihood estimates for the probabilities of the multinomial distribution that generated the
+    contingency table.
+    :param cont_table: (np.array) a 2X2 contingency table
+    :param N: Number of observations in the contingency table TODO could be computed in this function directly
+    :return: p_list (list of floats) MLE for the probabilities of the multinomial distribution that generated the
+    contingency table.
+    """
 
     p_list = []
     for element in cont_table.flatten():
@@ -21,6 +29,12 @@ def mle_multinomial_from_table(cont_table, N):
     return p_list
 
 def multinomial_cont_table(nb_trials, nb_categories):
+    """
+
+    :param nb_trials:
+    :param nb_categories:
+    :return:
+    """
     probabilities = [1 / float(nb_categories)] * nb_categories
     return np.random.multinomial(nb_trials, probabilities, 1).reshape(2, 2)
 

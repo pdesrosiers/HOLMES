@@ -761,14 +761,14 @@ if __name__ == '__main__':
 
     # Choose the name of the directory (dirName) where to save the files and the 'prefix' name of each created files
     # (data_name)
-    dirName = 'bird_test_asympt'
-    data_name = 'birdn185'
+    dirName = 'Directory'
+    data_name = 'Data'
 
     # Choose the alpha parameter to use throughout the analysis.
     alpha = 0.01
 
     # Enter the path to the presence/absence matrix :
-    matrix1 = np.load(r'D:\Users\Xavier\Documents\HOLMES\HOLMES\Data analysis\Birds_N185_bam.npy')
+    matrix1 = np.load(r'PATH_TO_MATRIX')
     matrix1 = matrix1.astype(np.int64)
 
     # Create target Directory if don't exist

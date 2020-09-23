@@ -608,12 +608,13 @@ def find_unique_cubes(matrix, save_name):
     for two_simplex in tqdm(itertools.combinations(range(matrix.shape[0]), 3)):
         cont_cube = get_cont_cube(two_simplex[0], two_simplex[1], two_simplex[2], matrix)
 
-        table_str = str(int(cont_cube[0, 0, 0])) + '_' + str(int(cont_cube[0, 0, 1])) + '_' + str(int(cont_cube[0, 1, 0])) + '_' + str(int(cont_cube[0, 1, 1])) + '_' + str(int(cont_cube[1, 0, 0])) + '_' + str(int(cont_cube[1, 0, 1])) + '_' + str(int(cont_cube[1, 1, 0])) + '_' + str(int(cont_cube[1, 1, 1]))
-        if table_str not in table_set:
+        if not find_if_invalid_cube(cont_cube):
+            table_str = str(int(cont_cube[0, 0, 0])) + '_' + str(int(cont_cube[0, 0, 1])) + '_' + str(int(cont_cube[0, 1, 0])) + '_' + str(int(cont_cube[0, 1, 1])) + '_' + str(int(cont_cube[1, 0, 0])) + '_' + str(int(cont_cube[1, 0, 1])) + '_' + str(int(cont_cube[1, 1, 0])) + '_' + str(int(cont_cube[1, 1, 1]))
+
             table_set.add(table_str)
 
     table_set = list(table_set)
-    print('How many different cubes : ', len(table_set))
+    print('How many different valid cubes : ', len(table_set))
     json.dump(table_set, open(save_name + "_cube_list.json", 'w'))
 
 def pvalues_for_cubes(file_name, nb_samples, N):
@@ -710,7 +711,8 @@ def save_triplets_p_values_dictionary(bipartite_matrix, dictionary, savename):
             try :
                 chi2, p = dictionary[table_str]
             except:
-                p = dictionary[table_str]
+                #TODO Change for None?
+                chi2, p = 0.0, 1.0
 
             writer.writerow([two_simplex[0], two_simplex[1], two_simplex[2], p])
 
@@ -828,8 +830,8 @@ def triangles_p_values_AB_AC_BC_dictionary(csvfile, savename, dictionary, matrix
                 chi2, p = dictionary[table_str]
 
             except:
-
-                p = dictionary[table_str]
+                #TODO change for None?
+                chi2, p = 0.0, 1.0
 
             writer.writerow([row[0], row[1], row[2], p])
 
@@ -841,7 +843,7 @@ if __name__ == '__main__':
 
     # Choose the name of the directory (dirName) where to save the files and the 'prefix' name of each created files
     # (data_name)
-    dirName = 'New_directory'
+    dirName = 'Directory'
     data_name = 'Data'
 
     # Choose the alpha parameter to use throughout the analysis.
@@ -851,7 +853,7 @@ if __name__ == '__main__':
     nb_samples = 1000000
 
     # Enter the path to the presence/absence matrix :
-    matrix1 = np.load(r'PATH')
+    matrix1 = np.load(r'PATH_TO_MATRIX')
     matrix1 = matrix1.astype(np.int64)
 
     # Create target Directory if don't exist
@@ -881,7 +883,7 @@ if __name__ == '__main__':
 
     print('Step 3 : Find table for all links and their associated pvalue')
 
-    with open(data_name + '_exact_pval_dictio.json') as jsonfile:
+    with open(data_name + '_exact_1deg_pval_dictio.json') as jsonfile:
         dictio = json.load(jsonfile)
 
         save_pairwise_p_values_phi_dictionary(matrix1, dictio, data_name + '_exact_pvalues')
@@ -899,7 +901,7 @@ if __name__ == '__main__':
 
     ######## Fifth step : Extract all the unique cubes
 
-    print('Step 5 : Extract all the unique cubes')
+    print('Step 5 : Extract all the unique valid cubes')
 
     find_unique_cubes(matrix1, data_name)
 
@@ -915,7 +917,7 @@ if __name__ == '__main__':
 
         print('Step 7 : Find cube for all triplets and their associated pvalue')
 
-        with open(data_name + "_exact_cube_pval_dictio.json") as jsonfile:
+        with open(data_name + "_exact_1deg_cube_pval_dictio.json") as jsonfile:
             dictio = json.load(jsonfile)
 
             save_triplets_p_values_dictionary(matrix1, dictio, data_name + '_exact_cube_pvalues')
@@ -940,7 +942,7 @@ if __name__ == '__main__':
 
         print('Find all the p-values for the triangles under the hypothesis of homogeneity')
 
-        with open(data_name + "_exact_cube_pval_dictio.json") as jsonfile:
+        with open(data_name + "_exact_1deg_cube_pval_dictio.json") as jsonfile:
             dictio = json.load(jsonfile)
 
             triangles_p_values_AB_AC_BC_dictionary(data_name + '_exact_triangles_' + str(alpha)[2:] + '.csv', data_name + '_exact_triangles_' + str(alpha)[2:] + '_pvalues.csv', dictio, matrix1)
