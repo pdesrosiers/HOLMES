@@ -1,15 +1,15 @@
 # HOLMES
 
-A Python package for inferring Higher-Order dependencies with a Log-linear Estimation Strategy from presence/absence data.  HOLMES is also used for generating synthetic presence/absence from known higher-order structures.  
+HOLMES stands for Higher-Order dependencies with a Log-linear Estimation Strategy. It is a collection of Python modules that are used for inferring higher-order dependencies or interactions from presence/absence data.  HOLMES is also used for randomly generating synthetic presence/absence data from known higher-order structures.  
 
-The codes are based on methods developed in Ref. 1.  These methods rely on log-linear models, which are classical statistical tools of discrete multivariate analysis (Ref. 2), and two mathematical structures that generalize the concept of graph, namely simplicial complexes and hypergraphs (Ref. 3).  
+The codes are based on the methods developed in Ref. 1.  These methods rely on log-linear models, which are classical statistical tools for discrete multivariate analysis (Ref. 2). The higher-order interactions (Ref. 3) are encoded into mathematical structures that generalize the concept of graph, namely simplicial complexes and hypergraphs.
 
 ## Table of content
 
 1. [Usage](#usage)
-    1. [Dependencies](#dependencies)
-    2. [Installation](#installation)
-    3. [Examples](#examples)
+    * [Dependencies](#dependencies)
+    * [Installation](#installation)
+    * [Examples](#examples)
 2. [References](#references)
 
 ## Usage
