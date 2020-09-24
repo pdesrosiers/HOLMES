@@ -594,7 +594,7 @@ def count_impossible_triplets(matrix):
     print('Number of invalid cubes : ', count)
     return count
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def find_if_invalid_cube(cont_cube):
     """
     Function used to know whether a sufficient configuration contains a zero (which indicates an invalid table).
@@ -602,13 +602,16 @@ def find_if_invalid_cube(cont_cube):
     :return: 1 if the table is invalid, 0 otherwise.
     """
     xij_ = np.sum(cont_cube, axis=0)
-    if np.count_nonzero(xij_) != 4:
+    nonzeroij = np.count_nonzero(xij_)
+    if nonzeroij!= 4:
         return 1
     xi_k = np.sum(cont_cube, axis=2)
-    if np.count_nonzero(xi_k) != 4:
+    nonzeroik = np.count_nonzero(xi_k)
+    if nonzeroik!= 4:
         return 1
     x_jk = np.sum(cont_cube, axis=1).T
-    if np.count_nonzero(x_jk) != 4:
+    nonzerojk = np.count_nonzero(x_jk)
+    if nonzerojk!= 4:
         return 1
 
     return 0
@@ -654,7 +657,7 @@ def pvalues_for_cubes(file_name):
             else :
                 pvaldictio[table_id] = str(expected)
 
-        json.dump(pvaldictio, open(data_name + "_asymptotic_cube_pval_dictio.json", 'w'))
+        json.dump(pvaldictio, open(file_name + "_asymptotic_cube_pval_dictio.json", 'w'))
 
 
 def save_triplets_p_values_dictionary(bipartite_matrix, dictionary, savename):
