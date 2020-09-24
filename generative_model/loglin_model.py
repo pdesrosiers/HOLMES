@@ -314,7 +314,7 @@ def iterative_proportional_fitting_AB_AC_BC(cont_cube, delta=0.01):
             break
 
     return mijk
-@jit(nopython=True)
+#@jit(nopython=True)
 def iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube, delta=0.0001):
     """
     Computes the maximum likelihood estimates of a 2X2X2 table under the hypothesis no three-factor interaction.
