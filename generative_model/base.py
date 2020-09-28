@@ -267,21 +267,28 @@ class FactorGraph():
         return weight * node_states[0]
 
 class Prob_dist():
+    """
+    Probability distribution object for a given FactorGraph
+    """
 
     def __init__(self, factorgraph, temperature=1):
-
+        """
+        Initialize the probability distribution for a given FactorGraph
+        :param factorgraph: FactorGraph Object
+        :param temperature: TODO irrelevant
+        """
         self.temperature = temperature
+        self.fg = factorgraph
+        self._get_Z()
+        self._get_prob_dist()
 
-        if factorgraph is not None :
-            self.fg = factorgraph
-            self._get_Z()
-            self._get_prob_dist()
-
-        else:
-            pass
 
 
     def _get_Z(self):
+        """
+        Computes the partition function of the FactorGraph
+        :return: None, it only sets the attribute self.Z and self.energy_per_state
+        """
 
         self.energy_per_state = {}
 
@@ -296,14 +303,16 @@ class Prob_dist():
             self.Z += np.exp(-(1/self.temperature)*state_energy)
 
     def _get_prob_dist(self):
+        """
+        Computes the probability distribution for the presence/absence states of the FactorGraph.
+        :return:
+        """
 
         prob_dist = {}
 
         for state in itertools.product(range(2), repeat=len(self.fg.node_list)):
 
             prob_dist[state] = np.exp(-(1/self.temperature)*self.energy_per_state[state])/self.Z
-
-        #prob_dist['T'] = self.temperature
 
         self.prob_dist = prob_dist
 
