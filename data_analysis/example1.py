@@ -9,7 +9,7 @@
 print("\nStep 0: Load modules and data and set options")
 
 # Load the module for the inference with asymptotic statistical tests 
-from asymptotic_significative_interactions import *
+from data_analysis.asymptotic_significative_interactions import *
 
 # Set the pption to decide if we use the step method (recommended) or the systematic method, which is
 # longer and does not return a simplicial complex. Use step_method = False for the systematic method.
@@ -19,8 +19,8 @@ step_method = True
 # Choose the name of the directory (dir_name) where to save the files and the 'prefix' name of each 
 # created files (data_name)
 
-dir_name = 'Directory'
-data_name = 'Data'
+dir_name = 'results'
+data_name = 'small_data'
 
 # Create target Directory if doesn't exist
 
@@ -126,3 +126,5 @@ with open(data_name + "_asymptotic_cube_pval_dictio.json") as jsonfile:
 print("\nStep 9: Extract all 2-simplices")
 
 significant_triplet_from_csv(data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '_pvalues.csv', alpha, data_name + '_asymptotic_2-simplices_' + str(alpha)[2:])
+
+print("2-simplices saved in " + data_name + "_asymptotic_2-simplices.json")
