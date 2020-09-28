@@ -11,16 +11,20 @@ from loglin_model import iterative_proportional_fitting_AB_AC_BC_no_zeros, mle_2
 from copy import deepcopy
 
 class FactorGraph():
-    """Original graph that encodes all the interactions."""
+    """FactoGraph object that encodes all the interactions between the ' random variable ' nodes."""
 
     def __init__(self, facet_list=[], N=400, alpha=0.01, build_sc=False):
-        """__init__
-        :param facet_list: (list of lists) Each list in the list is a combination of integers
-                            representing the nodes of a facet in a simplicial complex.
         """
-        # build sc stands for Build simplicial complex. It means that, when trying to find probabilities,
-        # we only allow probabilities that will make it possible to find empty triangles that will be
-        # transformed in 2-simplices when we test the triplet.
+
+        :param facet_list: facet_list: (list of lists) Each list in the list is a combination of integers
+                                    representing the nodes of a facet in a simplicial complex.
+        :param N: (int) Number of observations that we plan to generate (used in set_probabilities_2x2 and 2x2x2)
+        :param alpha: (float) Threshold of significance
+        :param build_sc: (bool) True : forces the factor graph to have a simplicial complex representation (meaning that
+                                if the facet [1, 2, 3] exists, faces [1,2] [1,3] and [2,3] also exist.
+                                False : The resulting factor graph can be mapped to an hypergraph, but does not guarantee
+                                that lower order interactions have to be present for a higher one to exist.
+        """
         self.build_sc = build_sc
         self.alpha = alpha
         self.N = N
@@ -30,7 +34,7 @@ class FactorGraph():
         #print(self.probability_list)
 
 
-    def chisq_test_here(self, cont_tab, expected, df=1):
+    def chisq_test_fg(self, cont_tab, expected, df=1):
         #Computes the chisquare statistics and its p-value for a contingency table and the expected values obtained
         #via MLE or iterative proportional fitting.
         if np.any(expected == 0):
@@ -41,6 +45,14 @@ class FactorGraph():
         return test_stat, p_val
 
     def _get_skeleton(self, j=1):
+        """
+        Method to obtain all facets of dimension j and bellow. Here we use the word facet, but this function can be used
+        with a FactorGraph for which self.build_sc is False. If that's the case though, be carefull when interpreting
+        the j-skeleton, since an hypergraph does not possess such structure.
+        :param j: (int) dimension of the j-skeleton
+        :return: list of all facets of dimension j and bellow. Facets with dimensions higher than j are decomposed into
+                 facets of dimension j. E. G. [1,2,3] -> [1,2] [1,3] [2,3] if we select j = 1.
+        """
 
         skeleton_facet_list = []
 
@@ -57,12 +69,10 @@ class FactorGraph():
 
         return skeleton_facet_list
 
-    def _get_st_skeleton(self, j=1):
-
-        return self.st.get_skeleton(j)
-
-
     def _get_node_list(self):
+        """
+        :return: The list of 'random variable' (species) nodes in the FactorGraph
+        """
 
         node_set = set()
 
@@ -77,6 +87,13 @@ class FactorGraph():
 
 
     def set_factors(self):
+        """
+        Iterates through self.facet_list and sets a factor to each facet and coefficients for the factor. The
+        coefficients for each factors are determined randomly using set_probabilities_2x2 and set_probabilities_2x2x2.
+        TODO : Incomplete. So far it can only manage facets of size 1 to 3 inclusively.
+        TODO : Weight list is a relic of the past and should be deleted
+        :return: None. This function sets a list of factor and of coefficient that have to be used in each factors.
+        """
 
         weight_list = []
 
@@ -111,13 +128,19 @@ class FactorGraph():
 
             else :
 
-                print('Interactions with more than three nodes are not yet coded.')
+                print('Interactions with more than three nodes are not yet implemented.')
 
         self.factor_list = factor_list
         self.weight_list = weight_list
         self.probability_list = probability_list
 
     def set_probabilities_2x2x2(self):
+        """
+        Finds appropriate coefficients for a facet of 3 nodes. If self.build_sc is True, we make sure that the
+        coefficients will also induce all lower-order interactions. Otherwise, we only find coefficients that make
+        it possible to reject the model of no second-order interaction for a give number of observations
+        :return: List of coefficient for a factor linking 3 ' random variable ' (species) nodes
+        """
 
         if self.build_sc:
             switch = True
@@ -127,17 +150,17 @@ class FactorGraph():
                 cont_cube = np.random.multinomial(self.N, probs).reshape((2, 2, 2))
                 exp = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube)
                 if exp is not None:
-                    pval = self.chisq_test_here(cont_cube, exp)[1]
+                    pval = self.chisq_test_fg(cont_cube, exp)[1]
                     if pval < self.alpha and np.count_nonzero(cont_cube) == 8:
                         contab1 = np.sum(cont_cube, axis=0)
                         exp1 = mle_2x2_ind(contab1)
-                        pval1 = self.chisq_test_here(contab1, exp1)[1]
+                        pval1 = self.chisq_test_fg(contab1, exp1)[1]
                         contab2 = np.sum(cont_cube, axis=1)
                         exp2 = mle_2x2_ind(contab2)
-                        pval2 = self.chisq_test_here(contab2, exp2)[1]
+                        pval2 = self.chisq_test_fg(contab2, exp2)[1]
                         contab3 = np.sum(cont_cube, axis=2)
                         exp3 = mle_2x2_ind(contab3)
-                        pval3 = self.chisq_test_here(contab3, exp3)[1]
+                        pval3 = self.chisq_test_fg(contab3, exp3)[1]
                         if pval1 < self.alpha and pval2 < self.alpha and pval3 < self.alpha:
                             switch = False
 
@@ -149,7 +172,7 @@ class FactorGraph():
                 cont_cube = np.random.multinomial(self.N, probs).reshape((2, 2, 2))
                 exp = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube)
                 if exp is not None:
-                    pval = self.chisq_test_here(cont_cube, exp)[1]
+                    pval = self.chisq_test_fg(cont_cube, exp)[1]
                     if pval < self.alpha and np.count_nonzero(cont_cube)==8:
                         switch = False
 
@@ -166,17 +189,20 @@ class FactorGraph():
         return [a, b, c, d, e, f, g, h]
 
     def set_probabilities_2x2(self):
+        """
+        Finds appropriate coefficients for a facet of 2 nodes. We find coefficients that make
+        it possible to reject the model of independence for a give number of observations
+        :return: List of coefficient for a factor linking 2 ' random variable ' (species) nodes
+        """
 
         switch = True
         while switch:
             cont_tab = np.random.multinomial(self.N, [1 / 4] * 4).reshape((2, 2))
             exp = mle_2x2_ind(cont_tab)
             if exp is not None:
-                pval = self.chisq_test_here(cont_tab, exp)[1]
+                pval = self.chisq_test_fg(cont_tab, exp)[1]
                 if pval < self.alpha and np.count_nonzero(cont_tab)==4:
                     switch = False
-
-        #print(cont_tab)
 
         a = np.log(cont_tab[1, 1])
         b = np.log(cont_tab[0, 1])
@@ -189,13 +215,27 @@ class FactorGraph():
 
     def set_weight_list(self):
 
-        #TODO
+
+        #TODO : Irrelevant and should be removed
 
         return
 
-    # For rejection of H0 :[[[62. 19.]  [16. 80.]] [[70. 64.]  [63. 26.]]] [[[77. 12.]  [15. 87.]] [[68. 67.]  [65.  9.]]]
-    # Empty triangle to H0 : [[[77.  7.]  [ 9. 91.]] [[63. 70.]  [80.  3.]]]
     def threefactor_table_entry(self, node_states, weight, a=np.log(39), b=np.log(54), c=np.log(85), d=np.log(64), e=np.log(63), f=np.log(19), g=np.log(25), h=np.log(51)):
+        """
+        Function used to set a factor linking three variables. Parameters are only relevant when sampling the FactorGraph.
+
+        :param node_states: (int) 0 or 1 if node x_i is present or absent
+        :param weight: TODO Irrelevant parameter
+        :param a: (float) coefficient for the probability of sampling the state [1 1 1]
+        :param b: (float) coefficient for the probability of sampling the state [1 1 0]
+        :param c: (float) coefficient for the probability of sampling the state [1 0 1]
+        :param d: (float) coefficient for the probability of sampling the state [0 1 1]
+        :param e: (float) coefficient for the probability of sampling the state [1 0 0]
+        :param f: (float) coefficient for the probability of sampling the state [0 1 0]
+        :param g: (float) coefficient for the probability of sampling the state [0 0 1]
+        :param h: (float) coefficient for the probability of sampling the state [0 0 0]
+        :return: (float) value of the factor for a given state and given coefficient
+        """
         x1 = node_states[0]
         x2 = node_states[1]
         x3 = node_states[2]
@@ -205,13 +245,16 @@ class FactorGraph():
 
 
     def twofactor_table_entry(self, node_states, weight, a=np.log(48), b=np.log(2), c=np.log(2), d=np.log(48)):
-
-        x1 = node_states[0]
-        x2 = node_states[1]
-
-        return weight * (a*x1*x2 + b*(1-x1)*x2 + c*x1*(1-x2) + d*(1-x1)*(1-x2))
-
-    def twofactor_table_entry_pos(self, node_states, weight, a=np.log(0.48), b=0, c=0, d=np.log(1.52)):
+        """
+        Function used to set a factor linking two variables. Parameters are only relevant when sampling the FactorGraph.
+        :param node_states: (int) 0 or 1 if node x_i is present or absent
+        :param weight: TODO Irrelevant parameter
+        :param a: (float) coefficient for the probability of sampling the state [1 1]
+        :param b: (float) coefficient for the probability of sampling the state [0 1]
+        :param c: (float) coefficient for the probability of sampling the state [1 0 ]
+        :param d: (float) coefficient for the probability of sampling the state [0 0]
+        :return:
+        """
 
         x1 = node_states[0]
         x2 = node_states[1]
