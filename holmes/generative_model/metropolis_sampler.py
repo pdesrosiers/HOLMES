@@ -1,6 +1,6 @@
 from tqdm import tqdm
 import numpy as np
-from base import *
+from .base import *
 
 class Sampler():
     """Metropolis sampler to identify change point and perturbation"""

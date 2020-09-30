@@ -30,8 +30,8 @@ $ python setup.py install
 
 ### Examples
 
-* Some examples are provided in the folder `doc`.  
-* The script `example1.py` explaines how to analyze existing presence/absence data with the asymptotic method
+* Some examples are provided in the folder `doc` 
+* The script `example1.py` explaines how to analyze existing presence/absence data with the asymptotic method.
 * The script `example2.py` generates synthetic presence/absence data from a list a facets defing a simplicial complex.
 
 ## References

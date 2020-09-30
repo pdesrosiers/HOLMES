@@ -7,7 +7,7 @@ on the architecture of Zoo2019
 import numpy as np
 import itertools
 from scipy.stats import chi2
-from loglin_model import iterative_proportional_fitting_AB_AC_BC_no_zeros, mle_2x2_ind
+from .loglin_model import iterative_proportional_fitting_AB_AC_BC_no_zeros, mle_2x2_ind
 from copy import deepcopy
 
 class FactorGraph():

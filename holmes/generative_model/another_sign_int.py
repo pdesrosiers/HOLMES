@@ -10,7 +10,7 @@ import itertools
 import time
 import pickle
 import os
-from loglin_model import *
+from .loglin_model import *
 import matplotlib.pyplot as plt
 import networkx as nx
 from tqdm import tqdm

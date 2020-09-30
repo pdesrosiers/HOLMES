@@ -1,7 +1,7 @@
-from base import *
-from metropolis_sampler import *
-from loglin_model import *
-from another_sign_int import *
+from .base import *
+from .metropolis_sampler import *
+from .loglin_model import *
+from .another_sign_int import *
 
 def build_bipartite(samples):
 

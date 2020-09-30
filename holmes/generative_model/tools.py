@@ -1,8 +1,8 @@
-from base import *
-from loglin_model import *
-from metropolis_sampler import *
-from script_sampler import *
-from another_sign_int import *
+from .base import *
+from .loglin_model import *
+from .metropolis_sampler import *
+from .script_sampler import *
+from .another_sign_int import *
 from matplotlib.ticker import MultipleLocator
 from matplotlib import rc
 

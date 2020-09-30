@@ -9,7 +9,6 @@
 print("\nStep 0: Load modules and data and set options")
 
 # Load the module for the inference with asymptotic statistical tests 
-import holmes
 from holmes.data_analysis.asymptotic_significative_interactions import *
 
 # Set the pption to decide if we use the step method (recommended) or the systematic method, which is

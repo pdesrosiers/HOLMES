@@ -5,7 +5,7 @@
 # Step 0: Prepare analysis
 
 # Load packages
-from tools import *
+from holmes.generative_model.tools import *
 import os
 
 # Set parameters
