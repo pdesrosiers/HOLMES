@@ -1,8 +1,8 @@
 import copy
 import networkx as nx
 from tqdm import tqdm
-from .Exact_chi_square_1_deg import *
-from numba import jit
+from Exact_chi_square_1_deg import *
+
 
 
 def pvalue_AB_AC_BC(cont_cube):
@@ -374,6 +374,7 @@ def extract_phi_for_triangles(csvfilename):
 
     return [pure_negative_count, one_pos_two_neg, two_pos_one_neg, pure_positive_count]
 
+
 def find_unique_tables(matrix, save_name):
     """
     Find the unique contingency tables in the dataset. Sometimes, the number of of unique contingency tables is lower
@@ -407,7 +408,7 @@ def find_unique_tables(matrix, save_name):
 def pvalues_for_tables(file_name, nb_samples, N):
     """
     Find the p-values for the unique contingency tables found with the function find_unique_tables. To do so, it
-    generates the exact distribution of the statistic. This distribution has 1 degree of freedom.
+    generates the exact distribution of the statistic. This distribution has 3 degrees of freedom.
     :param file_name: (str) Path to the file obtained with the function find_unique_tables. This also acts as a
                             savename for the dictionary table : (chi^2 statistics, p-value). The keys of the dictionary
                             are actually strings where we flattened the 2X2 contingency table and separate each entry
@@ -434,87 +435,26 @@ def pvalues_for_tables(file_name, nb_samples, N):
         # Max index used in range() :
         for it in tqdm(range(len(table_set))):
             table_id = table_set[it]
-            table = np.random.rand(2, 2)
+            table = np.random.rand(2,2)
             table_id_list = str.split(table_id, '_')
-            # print(table_id, table_id_list)
             table[0, 0] = int(table_id_list[0])
             table[0, 1] = int(table_id_list[1])
             table[1, 0] = int(table_id_list[2])
             table[1, 1] = int(table_id_list[3])
-
             if not find_if_invalid_table(table):
-                expected_original = mle_2x2_ind(table)
-                problist = mle_multinomial_from_table(expected_original, N)
-                samples = multinomial_problist_cont_table(N, problist, nb_samples)
-                chisqlist = build_chisqlist(samples, nb_samples)
 
-                if len(chisqlist) == nb_samples:
+                expected1 = mle_2x2_ind(table)
+                problist = mle_multinomial_from_table(expected1, N)
+                sample = multinomial_problist_cont_table(N, problist, nb_samples)
+                expec = np.tile(expected1, (nb_samples, 1)).reshape(nb_samples, 2,2)
+                chisq = chisq_formula_vector(sample, expec)
 
-                    pvaldictio[table_id] = sampled_chisq_test(table, expected_original, chisqlist)
-                else:
-                    pvaldictio[table_id] = (0.0, 1.0)
+                pvaldictio[table_id] = sampled_chisq_test(table, expected1, chisq)
             else:
                 pvaldictio[table_id] = (0.0, 1.0)
 
-        json.dump(pvaldictio, open(file_name + "_exact_1deg_pval_dictio.json", 'w'))
 
-@jit(nopython=True)
-def build_chisqlist(samples, nb_samples):
-    """
-    Computes the chi^2 statistic between sampled contingency tables (from a multinomial distribution) and the expected
-    tables under the model of independence. The result is a list of chi^2 statistics.
-    :param samples: (np.array of contingency tables)
-    :param nb_samples: (int) number of samples in samples (TODO could be computed within the function)
-    :return: list of floats that represent chi^2 statistics
-    """
-    chisqlist = []
-    for i in range(nb_samples):
-        sample = samples[i, :, :]
-        expected = mle_2x2_ind(sample)
-        if np.any(expected == 0):
-            break
-        else:
-            chisqlist.append(test_statistics(sample, expected))
-    return chisqlist
-
-@jit(nopython=True)
-def build_chisqlist_cube(samples, nb_samples):
-    """
-    Computes the chi^2 statistic between sampled contingency cubes (from a multinomial distribution) and the expected
-    cubes under the model of no second order interaction. The result is a list of chi^2 statistics.
-    :param samples: (np.array of contingency cubes)
-    :param nb_samples: (int) number of samples in samples (TODO could be computed within the function)
-    :return: list of floats that represent chi^2 statistics
-    TODO : We can probably remove the part with :
-                if expected is not None:
-                for entry in expected.flatten():
-                    if entry < 0.01:
-                        switch = True
-                        break
-            if switch:
-                break
-    I think that iterative_proportional_fitting_AB_AC_BC_no_zeros already checks if entries in the contingency cube
-    are too close to zero (meaning that the sampled table and the expected table are the same, because the MLE does not
-    exist).
-    """
-    chisqlist = []
-    for i in range(nb_samples):
-        switch = False
-        sample = samples[i, :, :, :]
-        if not find_if_invalid_cube(sample):
-            expected = iterative_proportional_fitting_AB_AC_BC_no_zeros(sample)
-            if expected is not None:
-                for entry in expected.flatten():
-                    if entry < 0.01:
-                        switch = True
-                        break
-            if switch:
-                break
-            else:
-                chisqlist.append(test_statistics(sample, expected))
-        else:
-            break
-    return chisqlist
+        json.dump(pvaldictio, open(file_name + "_exact_2d-1deg_pval_dictio.json", 'w'))
 
 @jit(nopython=True)
 def find_if_invalid_table(cont_table):
@@ -553,6 +493,53 @@ def find_if_invalid_cube(cont_cube):
         return 1
 
     return 0
+
+#def pvalues_for_tables(file_name, nb_samples, N):
+#
+#    with open(file_name + "_table_list.json") as json_file:
+#        table_set = json.load(json_file)
+#
+#        #### From the different tables : generate the chisqdist :
+#
+#        pvaldictio = {}
+#
+#        # Max index used in range() :
+#        for it in tqdm(range(len(table_set))):
+#
+#            table_id = table_set[it]
+#            table = np.random.rand(2,2)
+#            table_id_list = str.split(table_id, '_')
+#            table[0, 0] = int(table_id_list[0])
+#            table[0, 1] = int(table_id_list[1])
+#            table[1, 0] = int(table_id_list[2])
+#            table[1, 1] = int(table_id_list[3])
+#            expected1 = mle_2x2_ind(table)
+#
+#            sample_list = build_sample_list(table, nb_samples, N)
+#
+#            chi_list = []
+#            for sample in sample_list:
+#
+#                chi_list.append(chisq_test(sample, expected1, df=3))
+#            print('HERE')
+#            pvaldictio[table_id] = sampled_chisq_test(table, expected1, chi_list)
+#
+#
+#        json.dump(pvaldictio, open(file_name + "_exact_pval_dictio.json", 'w'))
+#
+#@jit(nopython=True)
+#def build_sample_list(cont_table, nb_samples, N):
+#
+#    problist = []
+#    for element in cont_table.flatten():
+#        problist.append(element/N)
+#
+#    sample_list = []
+#    for n in range(nb_samples):
+#        sample_list.append(np.random.multinomial(N, problist).reshape(2, 2))
+#
+#    return sample_list
+
 
 
 def save_pairwise_p_values_phi_dictionary(bipartite_matrix, dictionary, savename):
@@ -593,6 +580,7 @@ def save_pairwise_p_values_phi_dictionary(bipartite_matrix, dictionary, savename
         writer.writerows(buffer)
 
 
+
 def find_unique_cubes(matrix, save_name):
     """
     Find the unique contingency cubes in the dataset. Sometimes, the number of of unique cubes is lower
@@ -610,7 +598,6 @@ def find_unique_cubes(matrix, save_name):
 
         if not find_if_invalid_cube(cont_cube):
             table_str = str(int(cont_cube[0, 0, 0])) + '_' + str(int(cont_cube[0, 0, 1])) + '_' + str(int(cont_cube[0, 1, 0])) + '_' + str(int(cont_cube[0, 1, 1])) + '_' + str(int(cont_cube[1, 0, 0])) + '_' + str(int(cont_cube[1, 0, 1])) + '_' + str(int(cont_cube[1, 1, 0])) + '_' + str(int(cont_cube[1, 1, 1]))
-
             table_set.add(table_str)
 
     table_set = list(table_set)
@@ -620,7 +607,7 @@ def find_unique_cubes(matrix, save_name):
 def pvalues_for_cubes(file_name, nb_samples, N):
     """
     Find the p-values for the unique contingency cubes found with the function find_unique_cubes. To do so, it
-    generates the exact distribution of the statistic. This distribution has 1 degree of freedom.
+    generates the exact distribution of the statistic. This distribution has 7 degrees of freedom.
     :param file_name: (str) Path to the file obtained with the function find_unique_cubes. This also acts as a
                             savename for the dictionary table : (chi^2 statistics, p-value). The keys of the dictionary
                             are actually strings where we flattened the 2X2X2 contingency cubes and separate each entry
@@ -631,7 +618,7 @@ def pvalues_for_cubes(file_name, nb_samples, N):
     """
 
     with open(file_name + '_cube_list.json') as json_file:
-        table_set = list(json.load(json_file))
+        table_set = json.load(json_file)
 
         #### From the different tables : generate the chisqdist :
 
@@ -652,33 +639,26 @@ def pvalues_for_cubes(file_name, nb_samples, N):
             table[1, 1, 1] = int(table_id_list[7])
 
 
-
             if not find_if_invalid_cube(table):
+
                 expected_original = iterative_proportional_fitting_AB_AC_BC_no_zeros(table)
                 for entry in expected_original.flatten():
                     if entry < 0.001:
                         switch = True
                 if switch:
-                    continue
-                    #pvaldictio[table_id] = (0.0, 1.0)
-                elif expected_original is not None:
-
+                    pvaldictio[table_id] = (0.0, 1.0)
+                else:
                     problist = mle_multinomial_from_table(expected_original, N)
-                    samples = multinomial_problist_cont_cube(N, problist, nb_samples)
-                    
-                    chisqlist = build_chisqlist_cube(samples, nb_samples)
+                    sample = multinomial_problist_cont_cube(N, problist, nb_samples)
+                    expec = np.tile(expected_original, (nb_samples, 1, 1, 1))
+                    chisq = chisq_formula_vector_for_cubes(sample, expec)
+                    #print(sampled_chisq_test(table, expected_original, chisq))
+                    pvaldictio[table_id] = sampled_chisq_test(table, expected_original, chisq)
 
-                    if len(chisqlist) == nb_samples:
-
-                        pvaldictio[table_id] = sampled_chisq_test(table, expected_original, chisqlist)
-                    else:
-                        continue
-                        #pvaldictio[table_id] = (0.0, 1.0)
             else:
-                continue
-                #pvaldictio[table_id] = (0.0, 1.0)
+                pvaldictio[table_id] = (0.0, 1.0)
 
-        json.dump(pvaldictio, open(data_name + "_exact_1deg_cube_pval_dictio.json", 'w'))
+        json.dump(pvaldictio, open(data_name + "_exact_2d-1_cube_pval_dictio.json", 'w'))
 
 
 def save_triplets_p_values_dictionary(bipartite_matrix, dictionary, savename):
@@ -711,10 +691,11 @@ def save_triplets_p_values_dictionary(bipartite_matrix, dictionary, savename):
             try :
                 chi2, p = dictionary[table_str]
             except:
-                #TODO Change for None?
+                #TODO change for None?
                 chi2, p = 0.0, 1.0
 
             writer.writerow([two_simplex[0], two_simplex[1], two_simplex[2], p])
+
 
 def significant_triplet_from_csv(csvfilename, alpha, savename):
     """
@@ -750,7 +731,6 @@ def build_simplices_list(matrix, two_simplices_file, one_simplices_file, alpha):
     :param alpha:   (float) Threshold of significance
     :return:
     """
-    #open('facet_list.txt', 'a').close()
 
     with open('facet_list.txt', 'w') as facetlist:
 
@@ -835,7 +815,6 @@ def triangles_p_values_AB_AC_BC_dictionary(csvfile, savename, dictionary, matrix
 
             writer.writerow([row[0], row[1], row[2], p])
 
-
 if __name__ == '__main__':
     # Options to decide if we use the step method (recommended) or the systematic method (longer and does not create
     # a simplicial complex. Use step_method = False for this one)
@@ -856,6 +835,8 @@ if __name__ == '__main__':
     matrix1 = np.load(r'PATH_TO_MATRIX')
     matrix1 = matrix1.astype(np.int64)
 
+    #build_facet_list(matrix1, r'D:\Users\Xavier\Documents\Analysis_master\Analysis\clean_analysis\vOTUS\vOTUS_exact_cube_pvalues.csv', r'D:\Users\Xavier\Documents\Analysis_master\Analysis\clean_analysis\vOTUS\vOTUS_exact_pvalues.csv', 0.01 )
+    #exit()
     # Create target Directory if don't exist
     if not os.path.exists(dirName):
         os.mkdir(dirName)
@@ -873,9 +854,9 @@ if __name__ == '__main__':
     # Finds all unique tables
     find_unique_tables(matrix1, data_name)
 
-    ######## Second step : Extract pvalues for all tables with an exact Chi1 distribution
+    ######## Second step : Extract pvalues for all tables with an exact Chi3 distribution
 
-    print('Step 2: Extract pvalues for all tables with an exact Chi1 distribution')
+    print('Step 2: Extract pvalues for all tables with an exact Chi3 distribution')
 
     pvalues_for_tables(data_name, nb_samples, matrix1.shape[1])
 
@@ -883,13 +864,13 @@ if __name__ == '__main__':
 
     print('Step 3 : Find table for all links and their associated pvalue')
 
-    with open(data_name + '_exact_1deg_pval_dictio.json') as jsonfile:
+    with open(data_name + '_exact_2d-1deg_pval_dictio.json') as jsonfile:
         dictio = json.load(jsonfile)
 
         save_pairwise_p_values_phi_dictionary(matrix1, dictio, data_name + '_exact_pvalues')
 
 
-    ######## Fourth step : extract the network for a given alpha
+    ######## Fourth step : Choose alpha and extract the network
 
     print('Step 4 : Generate network and extract edge_list for a given alpha')
 
@@ -905,11 +886,12 @@ if __name__ == '__main__':
 
     find_unique_cubes(matrix1, data_name)
 
-    ###### Sixth step : Extract pvalues for all cubes with an exact CHI 1 distribution
+    ###### Sixth step : Extract pvalues for all cubes with an exact CHI 7 distribution
 
-    print('Step 6: Extract pvalues for all tables with an exact CHI 1 distribution')
+    print('Step 6: Extract pvalues for all tables with an exact CHI 7 distribution')
 
     pvalues_for_cubes(data_name, nb_samples, matrix1.shape[1])
+
 
     ######## Seventh step : Find cube for all triplets and their associated pvalue
 
@@ -917,7 +899,7 @@ if __name__ == '__main__':
 
         print('Step 7 : Find cube for all triplets and their associated pvalue')
 
-        with open(data_name + "_exact_1deg_cube_pval_dictio.json") as jsonfile:
+        with open(data_name + "_exact_2d-1_cube_pval_dictio.json") as jsonfile:
             dictio = json.load(jsonfile)
 
             save_triplets_p_values_dictionary(matrix1, dictio, data_name + '_exact_cube_pvalues')
@@ -942,7 +924,7 @@ if __name__ == '__main__':
 
         print('Find all the p-values for the triangles under the hypothesis of homogeneity')
 
-        with open(data_name + "_exact_1deg_cube_pval_dictio.json") as jsonfile:
+        with open(data_name + "_exact_2d-1_cube_pval_dictio.json") as jsonfile:
             dictio = json.load(jsonfile)
 
             triangles_p_values_AB_AC_BC_dictionary(data_name + '_exact_triangles_' + str(alpha)[2:] + '.csv', data_name + '_exact_triangles_' + str(alpha)[2:] + '_pvalues.csv', dictio, matrix1)
@@ -952,7 +934,5 @@ if __name__ == '__main__':
         print('Extract 2-simplices')
 
         significant_triplet_from_csv(data_name + '_exact_triangles_' + str(alpha)[2:] + '_pvalues.csv', alpha, data_name + '_exact_2-simplices_' + str(alpha)[2:])
-
-    exit()
 
     ################# DONE ###################

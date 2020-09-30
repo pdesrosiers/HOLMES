@@ -1,7 +1,7 @@
 import copy
 import networkx as nx
 from tqdm import tqdm
-from .Exact_chi_square_1_deg import *
+from Exact_chi_square_1_deg import *
 from numba import jit
 
 

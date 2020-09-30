@@ -2,7 +2,7 @@ import numpy as np
 from numba import jit
 from scipy.stats import chi2
 import scipy as sp
-from .loglin_model import *
+from loglin_model import *
 import time
 import itertools
 import json
