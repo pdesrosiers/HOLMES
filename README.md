@@ -25,12 +25,14 @@ The codes are based on the methods developed in Ref. 1.  These methods rely on l
 ```
 $ git clone https://github.com/pdesrosiers/HOLMES
 $ cd HOLMES
+$ python setup.py install
 ```
 
 ### Examples
 
-* To analyze existing presence/absence data: `$ cd data_analysis` and look at the script `example1.py` 
-* To generate synthetic data: `$ cd generative_model` and open the script `example2.py` 
+* Some examples are provided in the folder `doc`.  
+* The script `example1.py` explaines how to analyze existing presence/absence data with the asymptotic method
+* The script `example2.py` generates synthetic presence/absence data from a list a facets defing a simplicial complex.
 
 ## References
 
