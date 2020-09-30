@@ -1,4 +1,5 @@
 import numpy as np
+from numba import jit
 from scipy.stats import chi2
 import scipy as sp
 from loglin_model import *
@@ -97,6 +98,45 @@ def chisq_formula_vector_for_cubes(cont_tables, expected):
     return np.nan_to_num(np.sum(np.sum(np.sum((cont_tables - expected) ** 2 / expected, axis = 1), axis = 1), axis=1))
 
 
+def get_cont_table(u_idx, v_idx, matrix):
+   # Computes the 2X2 contingency table for the occurrence matrix
+   row_u_present = matrix[u_idx, :]
+   row_v_present = matrix[v_idx, :]
+
+   row_u_not_present = 1 - row_u_present
+   row_v_not_present = 1 - row_v_present
+
+   # u present, v present
+   table00 = np.dot(row_u_present, row_v_present)
+
+   # u present, v NOT present
+   table01 = np.dot(row_u_present, row_v_not_present)
+
+   # u NOT present, v present
+   table10 = np.dot(row_u_not_present, row_v_present)
+
+   # u NOT present, v NOT present
+   table11 = np.dot(row_u_not_present, row_v_not_present)
+
+   return np.array([[table00, table01], [table10, table11]])
+
+def to_occurrence_matrix(matrix, savepath=None):
+   """
+   Transform a matrix into a binary matrix where entries are 1 if the original entry was different from 0.
+   Parameters
+   ----------
+   matrix (np.array)
+   savepath (string) : path and filename under which to save the file
+   Returns
+   -------
+       The binary matrix or None if a savepath is specified.
+   """
+   if savepath is None:
+       return (matrix > 0) * 1
+   else:
+       np.save(savepath, (matrix > 0) * 1)
+
+
 @jit(nopython=True)
 def sampled_chisq_test(cont_table, expected_table, sampled_array):
     if float(0) in expected_table:
@@ -131,48 +171,13 @@ def chisq_test(cont_tab, expected):
 
 if __name__ == '__main__':
 
-    def get_cont_table(u_idx, v_idx, matrix):
-       # Computes the 2X2 contingency table for the occurrence matrix
-       row_u_present = matrix[u_idx, :]
-       row_v_present = matrix[v_idx, :]
 
-       row_u_not_present = 1 - row_u_present
-       row_v_not_present = 1 - row_v_present
 
-       # u present, v present
-       table00 = np.dot(row_u_present, row_v_present)
-
-       # u present, v NOT present
-       table01 = np.dot(row_u_present, row_v_not_present)
-
-       # u NOT present, v present
-       table10 = np.dot(row_u_not_present, row_v_present)
-
-       # u NOT present, v NOT present
-       table11 = np.dot(row_u_not_present, row_v_not_present)
-
-       return np.array([[table00, table01], [table10, table11]])
-
-    def to_occurrence_matrix(matrix, savepath=None):
-       """
-       Transform a matrix into a binary matrix where entries are 1 if the original entry was different from 0.
-       Parameters
-       ----------
-       matrix (np.array)
-       savepath (string) : path and filename under which to save the file
-       Returns
-       -------
-           The binary matrix or None if a savepath is specified.
-       """
-       if savepath is None:
-           return (matrix > 0) * 1
-       else:
-           np.save(savepath, (matrix > 0) * 1)
     #sam = np.random.multinomial(140, np.array([21, 48, 18, 10, 6, 18, 7, 12])/140, 10000000). reshape(10000000, 2, 4)
     #expec = mle_2x2_ind_vector(sam, 140)
     #chisq = np.nan_to_num(chisq_formula_vector(sam, expec))
 
-    matrix1 = np.loadtxt('final_OTU.txt', skiprows=0, usecols=range(1, 39))
+    matrix1 = np.loadtxt('small_data.txt', skiprows=0, usecols=range(1, 8))
     matrix1 = to_occurrence_matrix(matrix1)
 
     computed_cont_table = get_cont_table(1, 583, matrix1)
