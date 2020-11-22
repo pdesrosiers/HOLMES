@@ -754,7 +754,226 @@ def triangles_p_values_tuple_dictionary(csvfile, savename, dictionary, matrix):
                 writer.writerow([row[0], row[1], row[2], p])
             except:
                 pass
+@jit(nopython=True)
+def get_hyper_cube(vector_1, vector_2, vector_3, vector_4):
+    # Computes the 2X2X2 contingency table from 4 vectors representing the presence/absence state of species on
+    # len(vector_1) sites.
 
+    table0000 = 0
+    table0010 = 0
+    table0100 = 0
+    table0110 = 0
+    table0001 = 0
+    table0011 = 0
+    table0101 = 0
+    table0111 = 0
+
+    table1000 = 0
+    table1010 = 0
+    table1100 = 0
+    table1110 = 0
+    table1001 = 0
+    table1011 = 0
+    table1101 = 0
+    table1111 = 0
+
+
+    for i in range(0, len(vector_1)):
+        u_state = vector_1[i]
+        v_state = vector_2[i]
+        w_state = vector_3[i]
+        x_state = vector_4[i]
+        if u_state == 0:
+            if v_state == 0:
+                if w_state == 0:
+                    if x_state == 0:
+                        table0000 += 1
+                    else:
+                        table1000 += 1
+                else:
+                    if x_state == 0:
+                        table0100 += 1
+                    else:
+                        table1100 += 1
+            else:
+                if w_state == 0:
+                    if x_state == 0:
+                        table0001 += 1
+                    else:
+                        table1001 += 1
+                else:
+                    if x_state == 0:
+                        table0101 += 1
+                    else:
+                        table1101 += 1
+
+        else:
+            if v_state == 0:
+                if w_state == 0:
+                    if x_state == 0:
+                        table0010 += 1
+                    else:
+                        table1010 += 1
+                else:
+                    if x_state == 0:
+                        table0110 += 1
+                    else:
+                        table1110 += 1
+            else:
+                if w_state == 0:
+                    if x_state == 0:
+                        table0011 += 1
+                    else:
+                        table1011 += 1
+
+                else:
+                    if x_state == 0:
+                        table0111 += 1
+                    else:
+                        table1111 += 1
+
+
+    return np.array([[[[table0000, table0010], [table0100, table0110]], [[table0001, table0011], [table0101, table0111]]],
+                     [[[table1000, table1010], [table1100, table1110]], [[table1001, table1011], [table1101, table1111]]]], dtype=np.int32)
+
+def graph_from_2simplices(filename):
+    """
+    Builds the 1-skeleton of the simplicial complex formed by a collection of 2-simplices
+    :param filename: path to the csv file containing all 2-simplices.
+    :return: a NetworkX graph
+    """
+    graph = nx.Graph()
+
+    with open(filename, 'r') as csvfile:
+
+        reader = csv.reader(csvfile)
+        next(reader)
+
+        for row in tqdm(reader):
+            graph.add_edge(int(row[0]), int(row[1]))
+            graph.add_edge(int(row[0]), int(row[2]))
+            graph.add_edge(int(row[1]), int(row[2]))
+
+    return graph
+
+def save_all_4clics(G, twosimplicesfile, savename):
+    """
+    Find all 4-clics in which all 4 choose 3 groups of 3 nodes are also 2-simplices.
+    :param G: A networkX graph obtained by runing graph_from_2simplices on the file containing all 2-simplices
+    :param twosimplicesfile: path to the csv file containing all 2-simplices.
+    :param savename: (str) Name of the CSV file in which we want to save the groups of 4 nodes on which we could
+                     run the analysis for a 3rd order dependency.
+    :return: None
+    """
+    G = copy.deepcopy(G)
+    twosimp_dictio = {}
+    with open(twosimplicesfile, 'r') as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader)
+        print('Building two-simplices dictionary :')
+        for row in tqdm(reader):
+            twosimp_dictio[(int(row[0]), int(row[1]), int(row[2]))] = 1
+
+    with open(savename + '.csv', 'w',  newline='') as csvFile:
+        writer = csv.writer(csvFile)
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'node index 4']])
+
+        # Iterate over all possible triangle relationship combinations
+        #To accelerate the process, we could remove all nodes that have a degree less then 3 before iterating over
+        #the remaining nodes.
+        count = 0
+        for node in list(G.nodes):
+            if G.degree[node] < 3:
+                G.remove_node(node)
+            else:
+                for triplet in itertools.combinations(G.neighbors(node), 3):
+                    switch = True
+                    for n1, n2 in itertools.combinations(triplet, 2):
+
+                        # Check if n1 and n2 have an edge between them
+                        if G.has_edge(n1, n2):
+                            continue
+                        else:
+                            switch = False
+                            break
+                    if switch:
+                        nb_2simplices_in_tetrahedron = 0
+                        #check if the triplet is an actual 2-simplex. We check all permutations, because I don't know
+                        #if the nodes were ordered properly. If so, we could simply check put
+                        #try:
+                        #    nb_2simplices_in_tetrahedron += (node, triplet[0], triplet[1], triplet[2])
+                        for permut in itertools.permutations((node, triplet[0], triplet[1], triplet[2]), 3):
+                            try:
+                                nb_2simplices_in_tetrahedron += twosimp_dictio[permut]
+                            except:
+                                continue
+                        if nb_2simplices_in_tetrahedron == 4:
+                            writer.writerow([str(node), str(triplet[0]), str(triplet[1]), str(triplet[2])])
+
+                G.remove_node(node)
+                
+def test_3rd_order_dependencies(csvfile, savename, matrix):
+    """
+    Test groups of 4 nodes that form a 4-clic and in which all 4 choose 3 groups of nodes are 2-simplices for a 3rd
+    order dependency
+    :param csvfile: Path to CSV file built with save_all_4clics
+    :param savename: (str) Name of the file in which we save the p-values for the tested groups
+    :param matrix: TODO should be np.array, but now it's a sparse matrix
+    :return: (int) number of untestable groups
+    """
+
+    with open(csvfile, 'r') as csvfile, open(savename + '.csv', 'w',  newline='') as fout:
+        reader = csv.reader(csvfile)
+        writer = csv.writer(fout)
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'node index 4', 'p-value']])
+        count = 0
+        none_count = 0
+        next(reader)
+        for row in tqdm(reader):
+
+            row_1 = matrix[int(row[0]), :]
+            row_2 = matrix[int(row[1]), :]
+            row_3 = matrix[int(row[2]), :]
+            row_4 = matrix[int(row[3]), :]
+
+            cont_hyper = get_hyper_cube(row_1, row_2, row_3, row_4)
+
+            expected = ipf_ABC_ABD_ACD_BCD_no_zeros(cont_hyper)
+
+            if expected is not None:
+                pval = chisq_test(cont_hyper, expected, df=1)[1]
+                #print(cont_hyper)
+                #print(expected)
+                #print(row)
+                writer.writerow([int(row[0]), int(row[1]), int(row[2]), int(row[3]), pval])
+            else:
+                count += 1
+
+        return none_count
+
+def extract_3_simplex_from_csv(csvfilename, savename, alpha = 0.01):
+    """
+    Build a csv file with all groups of 4 nodes for which we reject the subsaturated model in 4 dimensions.
+    :param csvfilename: Path to the csv file in which we saved all tested groups of 4 nodes and their p-value
+    :param savename: (str) Name of the csv file in which we save the presumed 3-simplices
+    :param alpha: (float) Significance threshold.
+    :return: None
+    """
+
+    with open(csvfilename, 'r') as csvfile, open(savename + '.csv', 'w',  newline='') as fout:
+        reader = csv.reader(csvfile)
+        writer = csv.writer(fout)
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'node index 4', 'p-value']])
+        next(reader)
+        for row in tqdm(reader):
+            try :
+                p = float(row[-1])
+                if p < alpha:
+                    writer = csv.writer(fout)
+                    writer.writerow([int(row[0]), int(row[1]), int(row[2]), int(row[3]), p])
+            except:
+                pass    
+    
 if __name__ == '__main__':
 
 
