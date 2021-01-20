@@ -29,6 +29,35 @@ class FactorGraph():
         self.set_factors()
         #print(self.probability_list)
 
+    def get_dictionary_length_facet_list(self):
+        """
+        Builds a dictionary where keys (int) are lengths and values are sets of simplices of a given size expected in
+        the resulting simplicial complex.
+        :return:
+        """
+
+        dictionary_length_list = {}
+
+        largest_facet_size = len(max(self.facet_list, key=len))
+
+
+        for size in range(2, largest_facet_size + 1):
+            facets_for_size = []
+            for facet in self.facet_list:
+                facet.sort()
+                if len(facet) > size:
+
+                    for lower_simplex in itertools.combinations(facet, size):
+                        facets_for_size.append(lower_simplex)
+
+                elif len(facet) == size:
+                    facets_for_size.append(tuple(facet))
+
+            dictionary_length_list[size] = set(facets_for_size)
+
+        self.facet_list_by_length = dictionary_length_list
+
+        return self.facet_list_by_length
 
     def chisq_test_here(self, cont_tab, expected, df=1):
         #Computes the chisquare statistics and its p-value for a contingency table and the expected values obtained
@@ -56,11 +85,6 @@ class FactorGraph():
                 skeleton_facet_list.append(facet)
 
         return skeleton_facet_list
-
-    def _get_st_skeleton(self, j=1):
-
-        return self.st.get_skeleton(j)
-
 
     def _get_node_list(self):
 
