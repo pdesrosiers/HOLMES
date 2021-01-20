@@ -77,7 +77,7 @@ def problist_to_2x2x2_cube(prob_dist, idx1, idx2, idx3, sample_size):
 class FactorGraph():
     """Original graph that encodes all the interactions."""
 
-    def __init__(self, facet_list=[], N=400, alpha=0.01, build_sc=False):
+    def __init__(self, facet_list=[], N=400, alpha=0.01, build_sc=False, hard_constraint=False):
         """__init__
         :param facet_list: (list of lists) Each list in the list is a combination of integers
                             representing the nodes of a facet in a simplicial complex.
@@ -86,11 +86,15 @@ class FactorGraph():
         # we only allow probabilities that will make it possible to find empty triangles that will be
         # transformed in 2-simplices when we test the triplet.
         self.build_sc = build_sc
+        self.hard_constraint = hard_constraint
         self.alpha = alpha
         self.N = N
         self.facet_list = facet_list
         self._get_node_list()
-        self.set_factors()
+        if self.build_sc:
+            self.build_simplicial_complex()
+        else:
+            self.set_factors()
         #print(self.probability_list)
 
     def get_dictionary_length_facet_list(self):
@@ -119,9 +123,9 @@ class FactorGraph():
 
             dictionary_length_list[size] = set(facets_for_size)
 
-        self.facet_list_by_length = dictionary_length_list
+        self.expected_facet_list_by_length = dictionary_length_list
 
-        return self.facet_list_by_length
+        return self.expected_facet_list_by_length
 
     def get_induced_facet_list_hypergraph(self):
         fg_1simplices_list = []
@@ -159,7 +163,7 @@ class FactorGraph():
 
         return self.induced_facet_list
 
-    def get_induced_facet_list_cs(self):
+    def get_effective_facet_list_cs(self):
         """
         Find the effective simplices of the factor graph.
         :return: a dictionary where keys are the size of the simplices and the values are set of tuples denoting the
@@ -203,9 +207,9 @@ class FactorGraph():
 
         simplices_dictio[3] = set(fg_2simplices_list)
 
-        self.induced_facet_list = simplices_dictio
+        self.effective_facet_list = simplices_dictio
 
-        return self.induced_facet_list
+        return self.effective_facet_list
 
     def chisq_test_here(self, cont_tab, expected, df=1):
         #Computes the chisquare statistics and its p-value for a contingency table and the expected values obtained
@@ -356,6 +360,50 @@ class FactorGraph():
         d = np.log(cont_tab[0, 0])
 
         return [a, b, c, d]
+
+    def build_simplicial_complex(self):
+        print('Building simplicial complex. If the algorithm has not converged after 100 tries,\n'
+              ' you\'ll be promted to continue or stop.')
+        self.get_dictionary_length_facet_list()
+
+        switch = True
+        i = 1
+        while switch:
+            if i%100 == 0 :
+                go_on = input('The algorithm was not able to find a simplicial complex that respect the constraints.'
+                              'Do you wish to go on for 100 more iterations? (type yes or no)')
+                if go_on != 'yes':
+                    break
+
+            self.set_factors()
+
+            self.get_effective_facet_list_cs()
+
+            wrong = False
+
+            for key_size in self.expected_facet_list_by_length:
+
+                expected = self.expected_facet_list_by_length[key_size]
+
+                effective = self.effective_facet_list[key_size]
+
+                if len(expected - effective) > 0:
+                    wrong = True
+                    break
+                else:
+                    if self.hard_constraint:
+                        if len(effective - expected) != 0:
+                            wrong = True
+                            break
+
+            if not wrong:
+                switch = False
+
+            i += 1
+
+        print('Done building simplicial complex')
+        print('Expected : ', self.expected_facet_list_by_length)
+        print('Effective : ', self.effective_facet_list)
 
 
 
