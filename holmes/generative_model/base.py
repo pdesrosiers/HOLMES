@@ -10,6 +10,70 @@ from scipy.stats import chi2
 from .loglin_model import iterative_proportional_fitting_AB_AC_BC_no_zeros, mle_2x2_ind
 from copy import deepcopy
 
+def problist_to_2x2_table(prob_dist, idx1, idx2, sample_size):
+
+    table = np.random.rand(2,2)
+    p_00 = 0
+    p_10 = 0
+    p_01 = 0
+    p_11 = 0
+    for key in list(prob_dist.keys()):
+        if key[idx1] == 0 and key[idx2] == 0:
+            p_00 += prob_dist[key]
+        elif key[idx1] == 1 and key[idx2] == 0:
+            p_10 += prob_dist[key]
+        elif key[idx1] == 0 and key[idx2] == 1:
+            p_01 += prob_dist[key]
+        else:
+            p_11 += prob_dist[key]
+
+    table[0, 0] = p_00
+    table[1, 0] = p_10
+    table[0, 1] = p_01
+    table[1, 1] = p_11
+
+    return table * sample_size
+
+def problist_to_2x2x2_cube(prob_dist, idx1, idx2, idx3, sample_size):
+
+    table = np.random.rand(2,2,2)
+    p_000 = 0
+    p_010 = 0
+    p_001 = 0
+    p_011 = 0
+    p_100 = 0
+    p_110 = 0
+    p_101 = 0
+    p_111 = 0
+    for key in list(prob_dist.keys()):
+        if key[idx1] == 0 and key[idx2] == 0 and key[idx3] == 0 :
+            p_000 += prob_dist[key]
+        elif key[idx1] == 1 and key[idx2] == 0 and key[idx3] == 0 :
+            p_010 += prob_dist[key]
+        elif key[idx1] == 0 and key[idx2] == 1 and key[idx3] == 0 :
+            p_001 += prob_dist[key]
+        elif key[idx1] == 1 and key[idx2] == 1 and key[idx3] == 0:
+            p_011 += prob_dist[key]
+        elif key[idx1] == 0 and key[idx2] == 0 and key[idx3] == 1:
+            p_100 += prob_dist[key]
+        elif key[idx1] == 1 and key[idx2] == 0 and key[idx3] == 1:
+            p_110 += prob_dist[key]
+        elif key[idx1] == 0 and key[idx2] == 1 and key[idx3] == 1:
+            p_101 += prob_dist[key]
+        else:
+            p_111 += prob_dist[key]
+
+    table[0, 0, 0] = p_000
+    table[0, 1, 0] = p_010
+    table[0, 0, 1] = p_001
+    table[0, 1, 1] = p_011
+    table[1, 0, 0] = p_100
+    table[1, 1, 0] = p_110
+    table[1, 0, 1] = p_101
+    table[1, 1, 1] = p_111
+
+    return table * sample_size
+
 class FactorGraph():
     """Original graph that encodes all the interactions."""
 
@@ -58,6 +122,90 @@ class FactorGraph():
         self.facet_list_by_length = dictionary_length_list
 
         return self.facet_list_by_length
+
+    def get_induced_facet_list_hypergraph(self):
+        fg_1simplices_list = []
+        fg_2simplices_list = []
+        simplices_dictio = {}
+
+        probdist = Prob_dist(self)
+
+        largest_facet_size = len(max(self.facet_list, key=len))
+
+        for one_simp in itertools.combinations(self.node_list, 2):
+
+            cont_table = problist_to_2x2_table(probdist.prob_dist, one_simp[0], one_simp[1], self.N)
+            expected_1 = mle_2x2_ind(cont_table)
+            pval = self.chisq_test_here(cont_table, expected_1)[1]
+
+            if pval < self.alpha:
+                fg_1simplices_list.append(one_simp)
+        simplices_dictio[2] = set(fg_1simplices_list)
+
+        for two_simp in itertools.combinations(self.node_list, 3):
+            cont_cube = problist_to_2x2x2_cube(probdist.prob_dist, two_simp[0], two_simp[1], two_simp[2], self.N)
+
+            expected_2 = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube)
+            if expected_2 is not None:
+                pval = self.chisq_test_here(cont_cube, expected_2)[1]
+            else:
+                pval = 1
+            if pval < self.alpha:
+                fg_2simplices_list.append(two_simp)
+
+        simplices_dictio[3] = set(fg_2simplices_list)
+
+        self.induced_facet_list = simplices_dictio
+
+        return self.induced_facet_list
+
+    def get_induced_facet_list_cs(self):
+        """
+        Find the effective simplices of the factor graph.
+        :return: a dictionary where keys are the size of the simplices and the values are set of tuples denoting the
+                 simplices in the factorgraph.
+        """
+        fg_1simplices_list = []
+        fg_2simplices_list = []
+        simplices_dictio = {}
+
+        probdist = Prob_dist(self)
+
+        largest_facet_size = len(max(self.facet_list, key=len))
+
+        for one_simp in itertools.combinations(self.node_list, 2):
+
+            cont_table = problist_to_2x2_table(probdist.prob_dist, one_simp[0], one_simp[1], self.N)
+            expected_1 = mle_2x2_ind(cont_table)
+            pval = self.chisq_test_here(cont_table, expected_1)[1]
+
+            if pval < self.alpha:
+                fg_1simplices_list.append(one_simp)
+        simplices_dictio[2] = set(fg_1simplices_list)
+
+        for two_simp in itertools.combinations(self.node_list, 3):
+            cont_cube = problist_to_2x2x2_cube(probdist.prob_dist, two_simp[0], two_simp[1], two_simp[2], self.N)
+
+            expected_2 = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube)
+            if expected_2 is not None:
+                pval = self.chisq_test_here(cont_cube, expected_2)[1]
+            else:
+                pval = 1
+            if pval < self.alpha:
+                is_a_2simplex = True
+                for simplex in itertools.combinations(two_simp, 2):
+                    if simplex not in simplices_dictio[2]:
+                        is_a_2simplex = False
+                        break
+
+                if is_a_2simplex:
+                    fg_2simplices_list.append(two_simp)
+
+        simplices_dictio[3] = set(fg_2simplices_list)
+
+        self.induced_facet_list = simplices_dictio
+
+        return self.induced_facet_list
 
     def chisq_test_here(self, cont_tab, expected, df=1):
         #Computes the chisquare statistics and its p-value for a contingency table and the expected values obtained
