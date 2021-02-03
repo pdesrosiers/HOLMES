@@ -75,12 +75,29 @@ def problist_to_2x2x2_cube(prob_dist, idx1, idx2, idx3, sample_size):
     return table * sample_size
 
 class FactorGraph():
-    """Original graph that encodes all the interactions."""
+    """Original graph that encodes all the dependencies."""
 
     def __init__(self, facet_list=[], N=400, alpha=0.01, build_sc=False, hard_constraint=False):
-        """__init__
+        """
+
         :param facet_list: (list of lists) Each list in the list is a combination of integers
                             representing the nodes of a facet in a simplicial complex.
+
+        :param N: (int) The number of observations on which the algorithms rely to generate random interactions
+                  This number should be the same or lower than the number of observations we will generate
+                  with this object
+
+        :param alpha: (float) The significance threshold, also used to generate random interactions
+
+        :param build_sc: (bool) If True, it the algorithm will make sure that faces of facets are also
+                                significance interactions. If False, the algorithm will probably find
+                                a structure that is more akin to an hypergraph, where lower order dependencies
+                                don't have to be embedded within higher-order dependencies
+
+        :param hard_constraint: (bool) If True, the algorithm will make sure that the effective facet list is
+                                       identical to the specified facet_list. If False, it allows the algorithm
+                                       to find an effective facet list that might contain induced (unspecified)
+                                       dependencies while still having every dependencies specified.
         """
         # build sc stands for Build simplicial complex. It means that, when trying to find probabilities,
         # we only allow probabilities that will make it possible to find empty triangles that will be
@@ -95,6 +112,22 @@ class FactorGraph():
             self.build_simplicial_complex()
         else:
             self.set_factors()
+            self.get_dictionary_length_facet_list()
+            self.get_effective_facet_list_hypergraph()
+            print('Expected : ', self.expected_facet_list_by_length)
+            print('Effective : ', self.effective_facet_list)
+            for key in range(2, max([max(self.expected_facet_list_by_length), max(self.effective_facet_list)]) + 1):
+                print('Induced dependecies of size : ', key)
+                try:
+                    effective_dep = self.effective_facet_list[key]
+                except:
+                    effective_dep = {}
+
+                try:
+                    expected_dep = self.expected_facet_list_by_length[key]
+                except:
+                    expected_dep = {}
+                print(effective_dep - expected_dep)
         #print(self.probability_list)
 
     def get_dictionary_length_facet_list(self):
@@ -127,7 +160,7 @@ class FactorGraph():
 
         return self.expected_facet_list_by_length
 
-    def get_induced_facet_list_hypergraph(self):
+    def get_effective_facet_list_hypergraph(self):
         fg_1simplices_list = []
         fg_2simplices_list = []
         simplices_dictio = {}
@@ -363,7 +396,7 @@ class FactorGraph():
 
     def build_simplicial_complex(self):
         print('Building simplicial complex. If the algorithm has not converged after 100 tries,\n'
-              ' you\'ll be promted to continue or stop.')
+              'you\'ll be prompted to continue or stop.')
         self.get_dictionary_length_facet_list()
 
         switch = True
@@ -373,7 +406,10 @@ class FactorGraph():
                 go_on = input('The algorithm was not able to find a simplicial complex that respect the constraints.'
                               'Do you wish to go on for 100 more iterations? (type yes or no)')
                 if go_on != 'yes':
+                    print('Stopping process')
                     break
+                else:
+                    print('Continuing for 100 more iterations')
 
             self.set_factors()
 
@@ -404,6 +440,18 @@ class FactorGraph():
         print('Done building simplicial complex')
         print('Expected : ', self.expected_facet_list_by_length)
         print('Effective : ', self.effective_facet_list)
+        for key in range(2, max([max(self.expected_facet_list_by_length), max(self.effective_facet_list)]) + 1):
+            print('Induced dependecies of size : ', key)
+            try:
+                effective_dep = self.effective_facet_list[key]
+            except:
+                effective_dep = {}
+
+            try:
+                expected_dep = self.expected_facet_list_by_length[key]
+            except:
+                expected_dep = {}
+            print(effective_dep - expected_dep)
 
 
 
