@@ -89,7 +89,7 @@ class FactorGraph():
 
         :param alpha: (float) The significance threshold, also used to generate random interactions
 
-        :param build_sc: (bool) If True, it the algorithm will make sure that faces of facets are also
+        :param build_sc: (bool) If True, the algorithm will make sure that faces of facets are also
                                 significance interactions. If False, the algorithm will probably find
                                 a structure that is more akin to an hypergraph, where lower order dependencies
                                 don't have to be embedded within higher-order dependencies
@@ -140,7 +140,6 @@ class FactorGraph():
         dictionary_length_list = {}
 
         largest_facet_size = len(max(self.facet_list, key=len))
-
 
         for size in range(2, largest_facet_size + 1):
             facets_for_size = []
@@ -245,8 +244,8 @@ class FactorGraph():
         return self.effective_facet_list
 
     def chisq_test_here(self, cont_tab, expected, df=1):
-        #Computes the chisquare statistics and its p-value for a contingency table and the expected values obtained
-        #via MLE or iterative proportional fitting.
+        # Computes the chisquare statistics and its p-value for a contingency table and the expected values obtained
+        # via MLE or iterative proportional fitting.
         if np.any(expected == 0):
             return 0, 1
         test_stat = np.sum((cont_tab-expected)**2/expected)
@@ -260,13 +259,13 @@ class FactorGraph():
 
         for facet in self.facet_list:
 
-            if len(facet) > j + 1 :
+            if len(facet) > j + 1:
 
                 for lower_simplex in itertools.combinations(facet, j + 1):
 
                     skeleton_facet_list.append(list(lower_simplex))
 
-            else :
+            else:
                 skeleton_facet_list.append(facet)
 
         return skeleton_facet_list
@@ -284,8 +283,13 @@ class FactorGraph():
         self.node_list = list(node_set)
         self.node_list.sort()
 
-
     def set_factors(self):
+        """
+        Iterates through self.facet_list and sets a factor to each facet and coefficients for the factor. The
+        coefficients for each factors are determined randomly using set_probabilities_2x2 and set_probabilities_2x2x2.
+        TODO : Incomplete. So far it can only manage facets of size 2 to 3 inclusively.
+        :return: None. This function sets a list of factor and of coefficient that have to be used in each factors.
+        """
 
         weight_list = []
 
@@ -318,7 +322,7 @@ class FactorGraph():
 
                 factor_list.append(self.threefactor_table_entry)
 
-            else :
+            else:
 
                 print('Interactions with more than three nodes are not yet coded.')
 
@@ -327,6 +331,12 @@ class FactorGraph():
         self.probability_list = probability_list
 
     def set_probabilities_2x2x2(self):
+        """
+        Finds appropriate coefficients for a facet of 3 nodes. If self.build_sc is True, we make sure that the
+        coefficients will also induce all lower-order interactions. Otherwise, we only find coefficients that make
+        it possible to reject the model of no second-order interaction for a give number of observations
+        :return: List of coefficient for a factor linking 3 ' random variable ' (species) nodes
+        """
 
         if self.build_sc:
             switch = True
@@ -359,9 +369,8 @@ class FactorGraph():
                 exp = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube)
                 if exp is not None:
                     pval = self.chisq_test_here(cont_cube, exp)[1]
-                    if pval < self.alpha and np.count_nonzero(cont_cube)==8:
+                    if pval < self.alpha and np.count_nonzero(cont_cube) == 8:
                         switch = False
-
 
         a = np.log(cont_cube[1, 1, 1])
         b = np.log(cont_cube[1, 1, 0])
@@ -375,6 +384,11 @@ class FactorGraph():
         return [a, b, c, d, e, f, g, h]
 
     def set_probabilities_2x2(self):
+        """
+        Finds appropriate coefficients for a facet of 2 nodes. We find coefficients that make
+        it possible to reject the model of independence for a give number of observations
+        :return: List of coefficient for a factor linking 2 ' random variable ' (species) nodes
+        """
 
         switch = True
         while switch:
@@ -382,10 +396,10 @@ class FactorGraph():
             exp = mle_2x2_ind(cont_tab)
             if exp is not None:
                 pval = self.chisq_test_here(cont_tab, exp)[1]
-                if pval < self.alpha and np.count_nonzero(cont_tab)==4:
+                if pval < self.alpha and np.count_nonzero(cont_tab) == 4:
                     switch = False
 
-        #print(cont_tab)
+        # print(cont_tab)
 
         a = np.log(cont_tab[1, 1])
         b = np.log(cont_tab[0, 1])
@@ -395,6 +409,7 @@ class FactorGraph():
         return [a, b, c, d]
 
     def build_simplicial_complex(self):
+
         print('Building simplicial complex. If the algorithm has not converged after 100 tries,\n'
               'you\'ll be prompted to continue or stop.')
         self.get_dictionary_length_facet_list()
@@ -402,7 +417,7 @@ class FactorGraph():
         switch = True
         i = 1
         while switch:
-            if i%100 == 0 :
+            if i % 100 == 0:
                 go_on = input('The algorithm was not able to find a simplicial complex that respect the constraints.'
                               'Do you wish to go on for 100 more iterations? (type yes or no)')
                 if go_on != 'yes':
@@ -453,17 +468,31 @@ class FactorGraph():
                 expected_dep = {}
             print(effective_dep - expected_dep)
 
-
-
     def set_weight_list(self):
 
-        #TODO
+        # TODO
 
         return
 
     # For rejection of H0 :[[[62. 19.]  [16. 80.]] [[70. 64.]  [63. 26.]]] [[[77. 12.]  [15. 87.]] [[68. 67.]  [65.  9.]]]
     # Empty triangle to H0 : [[[77.  7.]  [ 9. 91.]] [[63. 70.]  [80.  3.]]]
     def threefactor_table_entry(self, node_states, weight, a=np.log(39), b=np.log(54), c=np.log(85), d=np.log(64), e=np.log(63), f=np.log(19), g=np.log(25), h=np.log(51)):
+        """
+        Function used to set a factor linking three variables. Parameters are only relevant when sampling the FactorGraph.
+        #
+        :param node_states: (int) 0 or 1 if node x_i is present or absent
+        :param weight: TODO Irrelevant parameter
+        :param a: (float) coefficient for the probability of sampling the state [1 1 1]
+        :param b: (float) coefficient for the probability of sampling the state [1 1 0]
+        :param c: (float) coefficient for the probability of sampling the state [1 0 1]
+        :param d: (float) coefficient for the probability of sampling the state [0 1 1]
+        :param e: (float) coefficient for the probability of sampling the state [1 0 0]
+        :param f: (float) coefficient for the probability of sampling the state [0 1 0]
+        :param g: (float) coefficient for the probability of sampling the state [0 0 1]
+        :param h: (float) coefficient for the probability of sampling the state [0 0 0]
+        :return: (float) value of the factor for a given state and given coefficient
+        """
+
         x1 = node_states[0]
         x2 = node_states[1]
         x3 = node_states[2]
@@ -473,7 +502,16 @@ class FactorGraph():
 
 
     def twofactor_table_entry(self, node_states, weight, a=np.log(48), b=np.log(2), c=np.log(2), d=np.log(48)):
-
+        """
+        Function used to set a factor linking two variables. Parameters are only relevant when sampling the FactorGraph.
+        :param node_states: (int) 0 or 1 if node x_i is present or absent
+        :param weight: TODO Irrelevant parameter
+        :param a: (float) coefficient for the probability of sampling the state [1 1]
+        :param b: (float) coefficient for the probability of sampling the state [0 1]
+        :param c: (float) coefficient for the probability of sampling the state [1 0 ]
+        :param d: (float) coefficient for the probability of sampling the state [0 0]
+        :return: (float) value of the factor for a given state and given coefficient
+        """
         x1 = node_states[0]
         x2 = node_states[1]
 
@@ -486,15 +524,21 @@ class FactorGraph():
 
         return weight * (a*x1*x2 + b*(1-x1)*x2 + c*x1*(1-x2) + d*(1-x1)*(1-x2))
 
-
     def onefactor_state(self, node_states, weight):
 
         return weight * node_states[0]
 
 class Prob_dist():
+    """
+    Probability distribution object for a given FactorGraph
+    """
 
     def __init__(self, factorgraph, temperature=1):
-
+        """
+        Initialize the probability distribution for a given FactorGraph
+        :param factorgraph: FactorGraph Object
+        :param temperature: TODO irrelevant
+        """
         self.temperature = temperature
 
         if factorgraph is not None :
@@ -507,6 +551,10 @@ class Prob_dist():
 
 
     def _get_Z(self):
+        """
+        Computes the partition function of the FactorGraph
+        :return: None, it only sets the attribute self.Z and self.energy_per_state
+        """
 
         self.energy_per_state = {}
 
@@ -521,14 +569,16 @@ class Prob_dist():
             self.Z += np.exp(-(1/self.temperature)*state_energy)
 
     def _get_prob_dist(self):
+        """
+        Computes the probability distribution for the presence/absence states of the FactorGraph.
+        :return:
+        """
 
         prob_dist = {}
 
         for state in itertools.product(range(2), repeat=len(self.fg.node_list)):
 
             prob_dist[state] = np.exp(-(1/self.temperature)*self.energy_per_state[state])/self.Z
-
-        #prob_dist['T'] = self.temperature
 
         self.prob_dist = prob_dist
 
@@ -625,6 +675,7 @@ class BitFlipProposer(Proposer):
         self.factorgraph = fg
         self.lte = local_transition_energy
         self.total_energy = self.lte.get_total_energy()
+        self.probability_distribution = Prob_dist(self.factorgraph)
 
 
     def __call__(self):
@@ -648,7 +699,6 @@ class BitFlipProposer(Proposer):
         g = deepcopy(self.g)
         lte = self.lte
         return BitFlipProposer(g, lte,state)
-
 
     def _propose_bit_flip(self):
         """_propose_change_point propose a new change point
