@@ -77,7 +77,7 @@ def problist_to_2x2x2_cube(prob_dist, idx1, idx2, idx3, sample_size):
 class FactorGraph():
     """Original graph that encodes all the dependencies."""
 
-    def __init__(self, facet_list=[], N=400, alpha=0.01, build_sc=False, hard_constraint=False):
+    def __init__(self, facet_list=[], N=400, alpha=0.01, build_sc=False, building_constraint='None'):
         """
 
         :param facet_list: (list of lists) Each list in the list is a combination of integers
@@ -94,16 +94,18 @@ class FactorGraph():
                                 a structure that is more akin to an hypergraph, where lower order dependencies
                                 don't have to be embedded within higher-order dependencies
 
-        :param hard_constraint: (bool) If True, the algorithm will make sure that the effective facet list is
-                                       identical to the specified facet_list. If False, it allows the algorithm
-                                       to find an effective facet list that might contain induced (unspecified)
-                                       dependencies while still having every dependencies specified.
+        :param building_constraint: (str) If 'None', the algorithm will try to respect the facet list, but might destroy
+                                          specified dependencies and induce new ones.
+                                          If 'Hard', the effective facet list will be identical to the specified
+                                          facet_list
+                                          If 'Soft', the effective facet list will contain all dependencies specified in
+                                          facet_list, but might also contain induced dependencies.
         """
         # build sc stands for Build simplicial complex. It means that, when trying to find probabilities,
         # we only allow probabilities that will make it possible to find empty triangles that will be
         # transformed in 2-simplices when we test the triplet.
         self.build_sc = build_sc
-        self.hard_constraint = hard_constraint
+        self.building_constraint = building_constraint
         self.alpha = alpha
         self.N = N
         self.facet_list = facet_list
@@ -197,7 +199,7 @@ class FactorGraph():
 
     def get_effective_facet_list_cs(self):
         """
-        Find the effective simplices of the factor graph.
+        Find the effective simplices of the factor graph using the total probability distribution of states.
         :return: a dictionary where keys are the size of the simplices and the values are set of tuples denoting the
                  simplices in the factorgraph.
         """
@@ -430,29 +432,34 @@ class FactorGraph():
 
             self.get_effective_facet_list_cs()
 
-            wrong = False
 
-            for key_size in self.expected_facet_list_by_length:
+            if self.building_constraint is not 'None' :
+                wrong = False
+                for key_size in self.expected_facet_list_by_length:
 
-                expected = self.expected_facet_list_by_length[key_size]
+                    expected = self.expected_facet_list_by_length[key_size]
 
-                effective = self.effective_facet_list[key_size]
+                    effective = self.effective_facet_list[key_size]
+                    #Here we look at the set difference (Expected - effective) and compute its length. If bigger than zero,
+                    #expected is not a subset of effective (Effective does not contain all simplices of expected).
 
-                if len(expected - effective) > 0:
-                    wrong = True
-                    break
-                else:
-                    if self.hard_constraint:
-                        if len(effective - expected) != 0:
-                            wrong = True
-                            break
+                    if len(expected - effective) > 0:
+                        wrong = True
+                        break
+                    else:
+                        if self.building_constraint == 'Hard':
+                            if len(effective - expected) != 0:
+                                wrong = True
+                                break
 
-            if not wrong:
+                if not wrong:
+                    switch = False
+            else:
                 switch = False
 
             i += 1
 
-        print('Done building simplicial complex')
+        print('Done building simplicial complex ' + '(constraint mode : ' + str(self.building_constraint) + ')' )
         print('Expected : ', self.expected_facet_list_by_length)
         print('Effective : ', self.effective_facet_list)
         for key in range(2, max([max(self.expected_facet_list_by_length), max(self.effective_facet_list)]) + 1):
@@ -467,6 +474,8 @@ class FactorGraph():
             except:
                 expected_dep = {}
             print(effective_dep - expected_dep)
+            print('Destroyed dependecies of size ', key)
+            print(expected_dep - effective_dep)
 
     def set_weight_list(self):
 
