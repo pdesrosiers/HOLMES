@@ -39,6 +39,29 @@ class Sampler():
             self.results['nb_success'] += 1
 
     def sample(self, size=100):
+        nb_samples = 0
+        #maxprob = self.proposer.probability_distribution.prob_dist[max(self.proposer.probability_distribution.prob_dist)]
+        maxprob = max(self.proposer.probability_distribution.prob_dist.values())
+        #print('Maxprob : ', maxprob)
+
+        with tqdm(total=size, desc="Sampling") as pbar:
+            while nb_samples < size:
+
+                new_state, probability = self.proposer()
+
+                u = np.random.random()*maxprob
+                #u = np.random.uniform(0, maxprob)
+                #print(probability, u)
+                if u > probability:
+                    self.results['nb_rejected'] += 1
+                else:
+                    self.results['nb_success'] += 1
+                    self.results['sample'].append(new_state)
+
+                    nb_samples += 1
+                    pbar.update(1)
+
+    def sample_metropolis_hasting(self, size=100):
 
         if not self.thermalized:
             for iterator in tqdm(range(self.initial_burn),
