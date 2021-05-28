@@ -157,6 +157,15 @@ class FactorGraph():
 
             dictionary_length_list[size] = set(facets_for_size)
 
+        facets_for_size = []
+        for facet in self.facet_list:
+            facet.sort()
+            if len(facet) == 1:
+
+                facets_for_size.append(tuple(facet))
+
+        dictionary_length_list[1] = set(facets_for_size)
+
         self.expected_facet_list_by_length = dictionary_length_list
 
         return self.expected_facet_list_by_length
@@ -203,32 +212,37 @@ class FactorGraph():
         :return: a dictionary where keys are the size of the simplices and the values are set of tuples denoting the
                  simplices in the factorgraph.
         """
+        fg_0simplices_list = []
         fg_1simplices_list = []
         fg_2simplices_list = []
         simplices_dictio = {}
+        treated_nodes = set()
 
-        probdist = Prob_dist(self)
+        self.probdist = Prob_dist(self)
 
         largest_facet_size = len(max(self.facet_list, key=len))
 
         for one_simp in itertools.combinations(self.node_list, 2):
 
-            cont_table = problist_to_2x2_table(probdist.prob_dist, one_simp[0], one_simp[1], self.N)
+            cont_table = problist_to_2x2_table(self.probdist.prob_dist, one_simp[0], one_simp[1], self.N)
             expected_1 = mle_2x2_ind(cont_table)
             pval = self.chisq_test_here(cont_table, expected_1)[1]
 
             if pval < self.alpha:
                 fg_1simplices_list.append(one_simp)
+                for node in one_simp:
+                    treated_nodes.add(node)
         simplices_dictio[2] = set(fg_1simplices_list)
 
         for two_simp in itertools.combinations(self.node_list, 3):
-            cont_cube = problist_to_2x2x2_cube(probdist.prob_dist, two_simp[0], two_simp[1], two_simp[2], self.N)
+            cont_cube = problist_to_2x2x2_cube(self.probdist.prob_dist, two_simp[0], two_simp[1], two_simp[2], self.N)
 
             expected_2 = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube)
             if expected_2 is not None:
                 pval = self.chisq_test_here(cont_cube, expected_2)[1]
             else:
                 pval = 1
+
             if pval < self.alpha:
                 is_a_2simplex = True
                 for simplex in itertools.combinations(two_simp, 2):
@@ -238,8 +252,17 @@ class FactorGraph():
 
                 if is_a_2simplex:
                     fg_2simplices_list.append(two_simp)
+                    for node in two_simp:
+                        treated_nodes.add(node)
+        if len(fg_2simplices_list) > 0:
+            simplices_dictio[3] = set(fg_2simplices_list)
 
-        simplices_dictio[3] = set(fg_2simplices_list)
+        independent_nodes = set(self.node_list) - set(treated_nodes)
+
+        for node in independent_nodes:
+            fg_0simplices_list.append((node,))
+
+        simplices_dictio[1] = set(fg_0simplices_list)
 
         self.effective_facet_list = simplices_dictio
 
@@ -304,6 +327,8 @@ class FactorGraph():
             if len(facet) == 1:
 
                 weight_list.append(-1)
+
+                probability_list.append(self.set_probabilities_2x1())
 
                 factor_list.append(self.onefactor_state)
 
@@ -410,6 +435,20 @@ class FactorGraph():
 
         return [a, b, c, d]
 
+    def set_probabilities_2x1(self):
+        """
+        Finds appropriate coefficients for a facet of 1 node.
+        :return: List of coefficient for a factor related to one random variable
+        """
+
+        # print(cont_tab)
+        probability_of_presence = np.random.random(1)
+
+        a = np.log(probability_of_presence)
+        b = np.log(1-probability_of_presence)
+
+        return [a, b]
+
     def build_simplicial_complex(self):
 
         print('Building simplicial complex. If the algorithm has not converged after 100 tries,\n'
@@ -473,9 +512,15 @@ class FactorGraph():
                 expected_dep = self.expected_facet_list_by_length[key]
             except:
                 expected_dep = {}
-            print(effective_dep - expected_dep)
+            try :
+                print(effective_dep - expected_dep)
+            except :
+                print('None')
             print('Destroyed dependecies of size ', key)
-            print(expected_dep - effective_dep)
+            try:
+                print(expected_dep - effective_dep)
+            except:
+                print('None')
 
     def set_weight_list(self):
 
@@ -533,9 +578,11 @@ class FactorGraph():
 
         return weight * (a*x1*x2 + b*(1-x1)*x2 + c*x1*(1-x2) + d*(1-x1)*(1-x2))
 
-    def onefactor_state(self, node_states, weight):
+    def onefactor_state(self, node_states, weight, a=np.log(0.5), b=np.log(0.5)):
 
-        return weight * node_states[0]
+        x1 = node_states[0]
+
+        return weight * (a*x1 + b*(1-x1))
 
 class Prob_dist():
     """
@@ -710,6 +757,18 @@ class BitFlipProposer(Proposer):
         return BitFlipProposer(g, lte,state)
 
     def _propose_bit_flip(self):
+        """_propose_change_point propose a new change point
+
+        :returns likelihood_var, bias_var: tuple of energy variation for
+        the proposal
+        """
+
+        new_state = np.random.randint(2, size=len(self.state))
+        probability = self.probability_distribution.prob_dist[tuple(new_state)]
+
+        return new_state, probability
+
+    def _propose_bit_flip_metropolis_hasting(self):
         """_propose_change_point propose a new change point
 
         :returns likelihood_var, bias_var: tuple of energy variation for
