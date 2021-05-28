@@ -5,6 +5,9 @@ from .script_sampler import *
 from .another_sign_int import *
 from matplotlib.ticker import MultipleLocator
 from matplotlib import rc
+from scipy.special import comb
+import random
+
 
 def problist_to_table_old(prob_dist, sample_size):
 
@@ -283,6 +286,54 @@ def get_complete_list_with_pvals(fg_path, N ):
 
 
     return complete_list_with_pval
+
+def generate_facet_list_proportions(N, list_of_nb_of_simplices):
+    """
+    This function generates a list of lists, where each sublist represents a facet of a simplicial complex that is
+    built randomly
+    :param N: (int) Number of nodes in the simplicial complex
+    :param list_of_nb_of_simplices: (list of floats) The proportion of facets of size 3 (2-simplices) out of N choose 3
+                                                     possibilites and of size 2 (1-simplices) out of N choose 2 possibilities
+                                                     that we want in the facet list.
+    :return: List of facets defining a simplicial complex.
+    """
+    print('These proportion will produce ', int(np.floor(comb(N, 3)*list_of_nb_of_simplices[0])), 'out of ', comb(N, 3), '2-simplices')
+    print('These proportion will produce ', int(np.floor(comb(N, 2) * list_of_nb_of_simplices[1])), 'out of ',
+          comb(N, 2), '1-simplices')
+    node_list = np.arange(0, N)
+
+    all_twosimps = [twosimp for twosimp in itertools.combinations(node_list, 3)]
+
+    selected_twosimps = random.sample(all_twosimps, int(np.floor(comb(N, 3)*list_of_nb_of_simplices[0])))
+
+    all_onesimps = [onesimp for onesimp in itertools.combinations(node_list, 2)]
+
+    selected_onesimps = set(random.sample(all_onesimps, int(np.floor(comb(N, 2)*list_of_nb_of_simplices[1]))))
+
+    all_onesimps_from_twosimps = set()
+    for twosimp in selected_twosimps:
+        for onesimp in itertools.combinations(twosimp, 2):
+            all_onesimps_from_twosimps.add(onesimp)
+
+    selected_onesimps = list(selected_onesimps - all_onesimps_from_twosimps)
+
+    all_zerosimps = set()
+    for twosimp in selected_twosimps:
+        for node in twosimp:
+            all_zerosimps.add(node)
+    for onesimp in selected_onesimps:
+        for node in onesimp:
+            all_zerosimps.add(node)
+
+    remaining_onesimps = set(node_list) - all_zerosimps
+    selected_zerosimp = []
+    for zerosimp in remaining_onesimps:
+        selected_zerosimp.append((zerosimp,))
+
+    lol_selected_zerosimps = [list(simp) for simp in selected_zerosimp]
+    lol_selected_onesimps = [list(simp) for simp in selected_onesimps]
+    lol_selected_twosimps = [list(simp) for simp in selected_twosimps]
+    return lol_selected_zerosimps + lol_selected_onesimps + lol_selected_twosimps
 
 if __name__ == '__main__':
     observations = 1000
