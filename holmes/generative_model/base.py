@@ -9,6 +9,7 @@ import itertools
 from scipy.stats import chi2
 from .loglin_model import iterative_proportional_fitting_AB_AC_BC_no_zeros, mle_2x2_ind
 from copy import deepcopy
+from tqdm import tqdm
 
 def problist_to_2x2_table(prob_dist, idx1, idx2, sample_size):
 
@@ -206,7 +207,7 @@ class FactorGraph():
 
         return self.induced_facet_list
 
-    def get_effective_facet_list_cs(self):
+    def get_effective_facet_list_sc(self):
         """
         Find the effective simplices of the factor graph using the total probability distribution of states.
         :return: a dictionary where keys are the size of the simplices and the values are set of tuples denoting the
@@ -221,8 +222,8 @@ class FactorGraph():
         self.probdist = Prob_dist(self)
 
         largest_facet_size = len(max(self.facet_list, key=len))
-
-        for one_simp in itertools.combinations(self.node_list, 2):
+        print('Computing inferred links : \n')
+        for one_simp in tqdm(itertools.combinations(self.node_list, 2)):
 
             cont_table = problist_to_2x2_table(self.probdist.prob_dist, one_simp[0], one_simp[1], self.N)
             expected_1 = mle_2x2_ind(cont_table)
@@ -234,7 +235,8 @@ class FactorGraph():
                     treated_nodes.add(node)
         simplices_dictio[2] = set(fg_1simplices_list)
 
-        for two_simp in itertools.combinations(self.node_list, 3):
+        print('Computing inferred 2-simplices : \n')
+        for two_simp in tqdm(itertools.combinations(self.node_list, 3)):
             cont_cube = problist_to_2x2x2_cube(self.probdist.prob_dist, two_simp[0], two_simp[1], two_simp[2], self.N)
 
             expected_2 = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube)
@@ -469,7 +471,7 @@ class FactorGraph():
 
             self.set_factors()
 
-            self.get_effective_facet_list_cs()
+            self.get_effective_facet_list_sc()
 
 
             if self.building_constraint is not 'None' :
@@ -615,8 +617,8 @@ class Prob_dist():
         self.energy_per_state = {}
 
         self.Z = 0
-
-        for state in itertools.product(range(2), repeat=len(self.fg.node_list)):
+        print('Computing partition function. Total number of states = ', 2**len(self.fg.node_list))
+        for state in tqdm(itertools.product(range(2), repeat=len(self.fg.node_list))):
 
             state_energy = Energy(state, self.fg).get_total_energy()
 
@@ -731,7 +733,10 @@ class BitFlipProposer(Proposer):
         self.factorgraph = fg
         self.lte = local_transition_energy
         self.total_energy = self.lte.get_total_energy()
-        self.probability_distribution = Prob_dist(self.factorgraph)
+        try :
+            self.probability_distribution = self.factorgraph.probdist
+        except:
+            self.probability_distribution = Prob_dist(self.factorgraph)
 
 
     def __call__(self):
