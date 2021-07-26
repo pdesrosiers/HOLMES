@@ -754,6 +754,58 @@ def triangles_p_values_tuple_dictionary(csvfile, savename, dictionary, matrix):
                 writer.writerow([row[0], row[1], row[2], p])
             except:
                 pass
+
+def triangles_p_values(file_name, triangles_csvfile, savename, matrix):
+    """
+    Fetch the p-values of triplets that form a triangle after the first step of the method.
+    :param csvfile: (str) Path to the file obtained with the function save_triplets_p_values_dictionary.
+    :param savename: Name of the csv file where we save information
+    :param matrix: (np.array of ints) Presence/absence matrix
+    :return: None
+    """
+
+    dictio_cube_pvalue = {}
+    with open(triangles_csvfile, 'r') as csvfile, open(savename, 'w',  newline='') as fout:
+        reader = csv.reader(csvfile)
+        writer = csv.writer(fout)
+        writer.writerows([['node index 1', 'node index 2', 'node index 3', 'p-value']])
+        next(reader)
+        for row in tqdm(reader):
+            row = row[:3]
+            row = [int(i) for i in row]
+
+            row.sort()
+            row = tuple(row)
+            cont_cube = get_cont_cube(row[0], row[1], row[2], matrix)
+
+            table_str = str(int(cont_cube[0, 0, 0])) + '_' + str(int(cont_cube[0, 0, 1])) + '_' + str(
+                int(cont_cube[0, 1, 0])) + '_' + str(int(cont_cube[0, 1, 1])) + '_' + str(
+                int(cont_cube[1, 0, 0])) + '_' + str(int(cont_cube[1, 0, 1])) + '_' + str(
+                int(cont_cube[1, 1, 0])) + '_' + str(int(cont_cube[1, 1, 1]))
+
+            try :
+                unpack = dictio_cube_pvalue[table_str]
+                try:
+                    chi2, p = unpack
+                    writer.writerow([row[0], row[1], row[2], p])
+                except Exception as err:
+                    #If here, it means the table exists in the dictionary, but has not p-value (expected = None)
+                    pass
+            except:
+                #If here, it means that the key ' table_str ' does not exist in the dictionary and we create it
+
+                expected = iterative_proportional_fitting_AB_AC_BC_no_zeros(cont_cube)
+
+                if expected is not None:
+                    dictio_cube_pvalue[table_str] = chisq_test(cont_cube, expected, df=1)
+
+                    chi2, p = dictio_cube_pvalue[table_str]
+                    writer.writerow([row[0], row[1], row[2], p])
+
+                else:
+                    dictio_cube_pvalue[table_str] = str(expected)
+    json.dump(dictio_cube_pvalue, open(file_name + "_asymptotic_triangle_cubes_pval_dictio.json", 'w'))
+
 @jit(nopython=True)
 def get_hyper_cube(vector_1, vector_2, vector_3, vector_4):
     # Computes the 2X2X2 contingency table from 4 vectors representing the presence/absence state of species on
