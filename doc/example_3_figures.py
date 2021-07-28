@@ -102,13 +102,13 @@ df = pd.DataFrame(list(zip(vp_two_count_100 + vp_two_count_1000 +vp_two_count_10
 #sns.catplot(x="nb_observations", y="vp_two_count", kind="violin", inner=None, data=df)
 #sns.swarmplot(x=df["nb_observations"], y=df["vp_two_count"], color="k", size=3)
 
-#g = sns.catplot(x="nb_observations", y="vp_two_count", kind="violin", inner=None, data=df, scale='width')
+g = sns.catplot(x="nb_observations", y="vp_two_count", kind="violin", inner=None, data=df, scale='width')
 
-##g = sns.catplot(x="nb_observations", y="vp_two_count", kind="box", data=df)
-#sns.swarmplot(x="nb_observations", y="vp_two_count", color="k", size=3, data=df, ax=g.ax)
+#g = sns.catplot(x="nb_observations", y="vp_two_count", kind="box", data=df)
+sns.swarmplot(x="nb_observations", y="vp_two_count", color="k", size=3, data=df, ax=g.ax)
 
-#g.set(xlabel='Number of observations / matrix ', ylabel='True positives 2-simplices (target = 7)')
-#plt.show()
+g.set(xlabel='Number of observations / matrix ', ylabel='True positives 2-simplices (target = 7)')
+plt.show()
 
 #exit()
 
@@ -123,57 +123,33 @@ def set_axis_style(ax, labels):
     ax.set_xlabel('Number of observations / matrix ')
 
 plt.style.use('seaborn')
-violinwidth = 1.0
-bw = 0.12
-mean = False
-extrema = False
 
 fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(9, 4), sharey=False)
 
 #ax1.set_title('True positive counts for ')
 ax1.set_ylabel('True positive counts for links (target = 33)')
-#ax1.boxplot([vp_one_count_100 ,vp_one_count_1000, vp_one_count_10000], showmeans=True)
-parts1 = ax1.violinplot([vp_one_count_100 ,vp_one_count_1000, vp_one_count_10000], showmeans=mean, showextrema=extrema, bw_method=bw, widths=violinwidth)
+ax1.boxplot([vp_one_count_100 ,vp_one_count_1000, vp_one_count_10000], showmeans=True)
 set_axis_style(ax1, labels=['100', '1000', '10 000'])
-
-for pc in parts1['bodies']:
-    #pc.set_facecolor('#D43F3A')
-    pc.set_alpha(1)
 
 #ax2.set_title('Default violin plot')
 ax2.set_ylabel('False positive counts for links (target = 0)')
-parts2 = ax2.violinplot([fp_one_count_100, fp_one_count_1000, fp_one_count_10000], showmeans=mean, showextrema=extrema, bw_method=bw, widths=violinwidth)
+ax2.violinplot([fp_one_count_100, fp_one_count_1000, fp_one_count_10000], showmeans=True)
 set_axis_style(ax2, labels=['100', '1000', '10 000'])
-
-for pc in parts2['bodies']:
-    #pc.set_facecolor('#D43F3A')
-    pc.set_alpha(1)
-
-
 
 fig2, (ax3, ax4) = plt.subplots(nrows=1, ncols=2, figsize=(9, 4), sharey=False)
 #ax3.set_title('True positive counts for ')
 ax3.set_ylabel('True positive counts for 2-simplices (target = 7)')
-parts3 = ax3.violinplot([vp_two_count_100, vp_two_count_1000, vp_two_count_10000], showmeans=mean, showextrema=extrema, bw_method=bw, widths=violinwidth)
+ax3.violinplot([vp_two_count_100, vp_two_count_1000, vp_two_count_10000], showmeans=True)
 set_axis_style(ax3, labels=['100', '1000', '10 000'])
 
-for pc in parts3['bodies']:
-    #pc.set_facecolor('#D43F3A')
-    pc.set_alpha(1)
-
-ax4.set_title('Default violin plot')
+#ax4.set_title('Default violin plot')
 ax4.set_ylabel('False positive counts for 2-simplices (target = 0)')
-parts4 = ax4.violinplot([fp_two_count_100, fp_two_count_1000, fp_two_count_10000], showmeans=mean, showextrema=extrema, bw_method=bw, widths=violinwidth)
+ax4.violinplot([fp_two_count_100, fp_two_count_1000, fp_two_count_10000], showmeans=True)
 set_axis_style(ax4, labels=['100', '1000', '10 000'])
-
-for pc in parts4['bodies']:
-    #pc.set_facecolor('#D43F3A')
-    pc.set_alpha(1)
-
 
 plt.show()
 
 
-print(fp_two_count_10000)
+
 #g = sns.catplot(x="Number of observations", y="True positive count", kind="violin", inner=None, data=vp_two_count_10000)
 #sns.swarmplot(x="Number of observations", y="True positive count", color="k", size=3, data=vp_two_count_10000, ax=g.ax)

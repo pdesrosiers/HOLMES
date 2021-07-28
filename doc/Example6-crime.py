@@ -22,7 +22,7 @@ step_method = True
 # created files (data_name)
 
 dir_name = 'results'
-data_name = 'crime-betterpipe'
+data_name = 'crime'
 
 # Create target Directory if doesn't exist
 
@@ -37,7 +37,7 @@ data_name = os.path.join(dir_name, data_name)
 # Choose the significance level alpha to use throughout the analysis.
 alpha = 0.01
 
-df = pd.read_csv('out.moreno_crime_crime', sep=' ', skiprows=2, header=None)
+df = pd.read_csv('KONECT_data\out.moreno_crime_crime', sep=' ', skiprows=2, header=None)
 
 print(df[0])
 
