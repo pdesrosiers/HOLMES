@@ -31,7 +31,7 @@ data_name = os.path.join(dir_name, data_name)
 # Choose the significance level alpha to use throughout the analysis.
 alpha = 0.01
 
-df = pd.read_csv('KONECT_data\out.edit-adywiki', sep='\t', skiprows=1, header=None)
+df = pd.read_csv('KONECT_data\out.edit-kvwiki', sep='\t', skiprows=1, header=None)
 
 print(df)
 g = df.groupby(0)[1].apply(list).reset_index()
@@ -39,10 +39,6 @@ g = df.groupby(0)[1].apply(list).reset_index()
 k = pd.get_dummies(g[1].apply(pd.Series).stack()).sum(level=0)
 
 data_matrix = k.to_numpy()
-
-
-np.random.seed(1)
-
 
 p,n = data_matrix.shape
 
