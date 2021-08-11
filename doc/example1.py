@@ -11,11 +11,6 @@ print("\nStep 0: Load modules and data and set options")
 # Load the module for the inference with asymptotic statistical tests 
 from holmes.data_analysis.asymptotic_significative_interactions import *
 
-# Set the pption to decide if we use the step method (recommended) or the systematic method, which is
-# longer and does not return a simplicial complex. Use step_method = False for the systematic method.
-
-step_method = True 
-
 # Choose the name of the directory (dir_name) where to save the files and the 'prefix' name of each 
 # created files (data_name)
 
@@ -85,25 +80,9 @@ print('Number of links : ', g.number_of_edges())
 print("Edge list saved in file " + data_name + "_asymptotic_edge_list_" + str(alpha)[2:] + ".txt")
 
 ##############################
-# Fifth step: Extract all the unique cubes
+# Fifth step: Find all triangles in the previous network
 
-print('\nStep 5: Extract all the unique valid cubes')
-
-find_unique_cubes(data_matrix, data_name)
-
-print("Unique contingency cubes saved in" + data_name + "_cube_list.json")
-
-##############################
-# Sixth step: Extract pvalues for all cubes with an asymptotic distribution
-
-print('\nStep 6: Extract pvalues for all cubes with an asymptotic distribution')
-
-pvalues_for_cubes(data_name)
-
-##############################
-# Seventh step: Find all triangles in the previous network
-
-print('\nStep 7: Find all empty triangles in the network')
+print('\nStep 5: Find all empty triangles in the network')
 
 g = read_pairwise_p_values(data_name + '_asymptotic_pvalues.csv', alpha)
 
@@ -111,20 +90,26 @@ save_all_triangles(g, data_name + '_asymptotic_triangles_' + str(alpha)[2:])
 
 print('Number of triangles : ', count_triangles_csv(data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '.csv'))
 
-##############################
-# Eighth step: Find all the p-values for the triangles under the hypothesis of homogeneity
-
-print('\nStep 8: Find all the p-values for the triangles under the hypothesis of homogeneity')
-
-with open(data_name + "_asymptotic_cube_pval_dictio.json") as jsonfile:
-    dictio = json.load(jsonfile)
-    triangles_p_values_tuple_dictionary(data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '.csv', data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '_pvalues.csv', dictio, data_matrix)
+triangles_p_values(data_name, data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '.csv', data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '_pvalues.csv', data_matrix)
 
 ##############################
-# Last step: Exctract all 2-simplices
+# Sixth step: Extract all 2-simplices
 
-print("\nStep 9: Extract all 2-simplices")
+print("\nStep 6: Extract all 2-simplices")
 
 significant_triplet_from_csv(data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '_pvalues.csv', alpha, data_name + '_asymptotic_2-simplices_' + str(alpha)[2:])
 
-print("2-simplices saved in " + data_name + "_asymptotic_2-simplices.json")
+print("2-simplices saved in " + data_name + '_asymptotic_2-simplices_' + str(alpha)[2:] + '.csv')
+
+##############################
+# Seventh step: Find clicks of size 4 that also form the hull of a tetrahedron
+
+print("\nStep 7: Find clicks of size 4 that also form the hull of a tetrahedron")
+
+g2 = graph_from_2simplices(data_name + '_asymptotic_2-simplices_' + str(alpha)[2:] + '.csv')
+
+save_all_4clics(g2, data_name + '_asymptotic_2-simplices_' + str(alpha)[2:] + '.csv', data_name + '_4clicks')
+
+test_3rd_order_dependencies(data_name + '_4clicks' + '.csv', data_name + '_tetrahedron_pvalue', data_matrix)
+
+extract_3_simplex_from_csv(data_name + '_tetrahedron_pvalue' + '.csv', data_name + '_3-simplices', alpha)
