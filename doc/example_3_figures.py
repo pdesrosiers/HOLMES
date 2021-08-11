@@ -127,7 +127,7 @@ plt.style.use('seaborn')
 fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(9, 4), sharey=False)
 
 #ax1.set_title('True positive counts for ')
-ax1.set_ylabel('True positive counts for links (target = 33)')
+ax1.set_ylabel('True positive counts for links (target = 32)')
 ax1.violinplot([vp_one_count_100 ,vp_one_count_1000, vp_one_count_10000], showmeans=True, bw_method=0.12)
 set_axis_style(ax1, labels=['100', '1000', '10 000'])
 
