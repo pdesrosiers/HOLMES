@@ -12,12 +12,6 @@ print("\nStep 0: Load modules and data and set options")
 from holmes.data_analysis.asymptotic_significative_interactions import *
 import pandas as pd
 
-
-# Set the pption to decide if we use the step method (recommended) or the systematic method, which is
-# longer and does not return a simplicial complex. Use step_method = False for the systematic method.
-
-step_method = True
-
 # Choose the name of the directory (dir_name) where to save the files and the 'prefix' name of each
 # created files (data_name)
 
@@ -101,9 +95,9 @@ print('Number of links : ', g.number_of_edges())
 print("Edge list saved in file " + data_name + "_asymptotic_edge_list_" + str(alpha)[2:] + ".txt")
 
 ##############################
-# Seventh step: Find all triangles in the previous network
+# Fifth step: Find all triangles in the previous network
 
-print('\nStep 7: Find all empty triangles in the network')
+print('\nStep 5: Find all empty triangles in the network')
 
 g = read_pairwise_p_values(data_name + '_asymptotic_pvalues.csv', alpha)
 
@@ -114,9 +108,9 @@ print('Number of triangles : ', count_triangles_csv(data_name + '_asymptotic_tri
 triangles_p_values(data_name, data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '.csv', data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '_pvalues.csv', data_matrix)
 
 ##############################
-# Last step: Exctract all 2-simplices
+# Last step: Extract all 2-simplices
 
-print("\nStep 9: Extract all 2-simplices")
+print("\nStep 6: Extract all 2-simplices")
 
 significant_triplet_from_csv(data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '_pvalues.csv', alpha, data_name + '_asymptotic_2-simplices_' + str(alpha)[2:])
 
