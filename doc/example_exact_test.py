@@ -10,6 +10,7 @@ print("\nStep 0: Load modules and data and set options")
 
 # Load the module for the inference with exact statistical tests
 from holmes.data_analysis.exact_significative_interactions_1degree import *
+import pandas as pd
 
 # Choose the name of the directory (dir_name) where to save the files and the 'prefix' name of each
 # created files (data_name)
@@ -37,7 +38,19 @@ nb_samples = 1000000
 data_matrix = np.load('sample_data.npy')
 data_matrix = data_matrix.astype(np.int64)
 p,n = data_matrix.shape
+
+np.random.seed(55)
+random_indices = np.random.choice(n, size=40, replace=False)
+data_matrix = data_matrix[:, random_indices]
+p,n = data_matrix.shape
+
 print("Preparing to analyze a data set with " + str(p) + " variables and " + str(n) + " samples")
+
+if n >= 10 and n <= 40:
+    print('The number of samples is between 10 and 40. The CSV files can be used to fetch the pvalues\n'
+          'Note that these pvalues were obtained using 1 000 000 samples for the exact distribution. \n'
+          'If you wish to use a different number of samples to generate the exact distribution, change\n'
+          'parameter « nb_samples », which will force your script to generate the new exact distributions.')
 
 ##############################
 # First step: Extract all the unique tables
@@ -54,7 +67,12 @@ print("Unique contingency tables saved in file " + data_name + "_table_list.json
 
 print('Step 2: Extract pvalues for all tables with an exact Chi1 distribution')
 
-pvalues_for_tables_exact(data_name, nb_samples, data_matrix.shape[1])
+if n >= 10 and n <= 40 and nb_samples == 1000000:
+    df = pd.read_csv(r'exact_pvalues\clean_tablepvalues_withzeros_' + str(n) + '.csv')
+
+    pvalues_for_tables_exact_with_df(data_name, df)
+else:
+    pvalues_for_tables_exact(data_name, nb_samples, data_matrix.shape[1])
 
 print("\nResulting p-values saved in file " + data_name + "_exact_pval_dictio.json")
 

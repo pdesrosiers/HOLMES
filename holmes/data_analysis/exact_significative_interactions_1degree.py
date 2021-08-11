@@ -3,6 +3,7 @@ import networkx as nx
 from tqdm import tqdm
 from .Exact_chi_square_1_deg import *
 from numba import jit
+import pandas as pd
 
 
 def pvalue_AB_AC_BC(cont_cube):
@@ -403,6 +404,38 @@ def find_unique_tables(matrix, save_name):
     print('How many different tables : ', len(table_set))
     json.dump(table_set, open(save_name + "_table_list.json", 'w'))
 
+def pvalues_for_tables_exact_with_df(file_name, df):
+    """
+    Fetch the p-values for the contingency tables found with the function find_unique_tables in a csv file.
+
+    :param file_name: (str) Path to the file obtained with the function find_unique_tables. This also acts as a
+                            savename for the dictionary table : (chi^2 statistics, p-value). The keys of the dictionary
+                            are actually strings where we flattened the 2X2 contingency table and separate each entry
+                            by underscores.
+            N:  (int)       Number of observations in the table
+            df: (pandas dataframe) Dataframe obtained by opening a CSV file in the folder exact_pvalues
+    :return: None
+    """
+
+    with open(file_name + "_table_list.json") as json_file:
+        table_set = json.load(json_file)
+
+        #### From the different tables : generate the chisqdist :
+
+        pvaldictio = {}
+
+        for it in tqdm(range(len(table_set))):
+
+            table_id = table_set[it]
+            pval = float(df[df.values == table_id]['pval_exact'])
+            chi = float(df[df.values == table_id]['chi_stat'])
+            if pval < 0:
+                pval = 1
+                chi = 0
+
+            pvaldictio[table_id] = (chi, pval)
+
+        json.dump(pvaldictio, open(file_name + "_exact_pval_dictio.json", 'w'))
 
 def pvalues_for_tables_exact(file_name, nb_samples, N):
     """
