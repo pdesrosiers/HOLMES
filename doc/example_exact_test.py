@@ -40,7 +40,7 @@ data_matrix = data_matrix.astype(np.int64)
 p,n = data_matrix.shape
 
 np.random.seed(55)
-random_indices = np.random.choice(n, size=40, replace=False)
+random_indices = np.random.choice(n, size=20, replace=False)
 data_matrix = data_matrix[:, random_indices]
 p,n = data_matrix.shape
 
@@ -68,7 +68,7 @@ print("Unique contingency tables saved in file " + data_name + "_table_list.json
 print('Step 2: Extract pvalues for all tables with an exact Chi1 distribution')
 
 if n >= 10 and n <= 40 and nb_samples == 1000000:
-    df = pd.read_csv(r'exact_pvalues\clean_tablepvalues_withzeros_' + str(n) + '.csv')
+    df = pd.read_csv(r'..\holmes\exact_pvalues\clean_tablepvalues_withzeros_' + str(n) + '.csv')
 
     pvalues_for_tables_exact_with_df(data_name, df)
 else:
