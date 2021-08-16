@@ -20,11 +20,11 @@ diff is the absolute difference between pval_exact and pval_asympt.
 
 # BE ADVISED #
 
-Some pval_exact entries are 2. This is not an error, but rather a code. If pval_exact = 2, it means that the procedure to compute the exact distribution failed
-because the expected table is identical to the table (hence a chi_stat of 0) and contains zeros. Such tables do not offer the possibility to generate tables
-that have positive entries where zeros are present in the original table. They are considered as structural zeros and not sampling zeros. As a result, we cannot
-generate the exact distribution without adding positive counts in places of zeros in the original table. However doing so would influence the exact distribution
-and defeat the purpose of using it, since we introduce some kind of bias towards a distribution that might, or not, represent the actual distribution that has
-led to this specific table. 
+Some pval_exact entries are 2 and their associated diff is also 2. This is not an error, but rather a code. If pval_exact = 2, it means that the procedure 
+to compute the exact distribution failed because the expected table is identical to the table (hence a chi_stat of 0) and contains zeros. Such tables do not 
+offer the possibility to generate tables that have positive entries where zeros are present in the original table. They are considered as structural zeros 
+and not sampling zeros. As a result, we cannot generate the exact distribution without adding positive counts in places of zeros in the original table. However,
+doing so would influence the exact distribution and defeat the purpose of using it, since we introduce some kind of bias towards a distribution that might, or not,
+represent the actual distribution that has led to this specific table. 
 
-For these tables, HOLMES thus always conclude in independence, favoring the reduction of type 1 error. 
+For these tables, HOLMES thus always concludes in independence, favoring the reduction of type 1 error. 
