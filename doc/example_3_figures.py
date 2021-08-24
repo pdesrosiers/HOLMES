@@ -112,8 +112,7 @@ df = pd.DataFrame(list(zip(vp_two_count_100 + vp_two_count_1000 +vp_two_count_10
 #plt.show()
 
 #exit()
-
-
+plt.rcParams.update({"text.usetex": True})
 
 def set_axis_style(ax, labels):
     ax.xaxis.set_tick_params(direction='out')
@@ -124,12 +123,14 @@ def set_axis_style(ax, labels):
     ax.set_xlabel('Number of observations / matrix ')
 
 plt.style.use('seaborn')
-
+#plt.style.use('fivethirtyeight')
 
 
 fig, ax1 = plt.subplots(nrows=1, ncols=1)
 
-ax1.set_ylabel('Number of Inferred Links')
+
+ax1.set_ylabel('Number of Inferred Links', fontsize=12)
+plt.yticks(fontsize=13)
 parts = ax1.violinplot([vp_one_count_100 , vp_one_count_1000, vp_one_count_10000], positions = [1, 4, 7], showmeans=False, showextrema=False, bw_method=0.12, widths=1.5)
 
 for pc in parts['bodies']:
@@ -143,38 +144,42 @@ for pc in parts['bodies']:
     pc.set_alpha(1)
 
 #set_axis_style(ax1, labels=['100', '1000', '10 000'])
-ax1.set_xticklabels(['100 observations/matrix', '1000 observations/matrix', '10000 observations/matrix'])
+ax1.set_xticklabels(['$100$', '$1\, 000$', '$10\, 000$'])
 ax1.set_xticks([1.5, 4.5, 7.5])
+plt.xticks(fontsize=12)
 
 labels = [(mpatches.Patch(color='#ff7f00ff'), 'True Positives (target = 32)'), (mpatches.Patch(color='#00a1ffff'), 'False Positives (target = 0)')]
 
-plt.legend(*zip(*labels), loc=2)
-
+plt.legend(*zip(*labels), loc=2, fontsize=11)
+ax1.set_aspect(1.0/ax1.get_data_ratio(), adjustable='box')
 plt.show()
-
 
 fig2, ax2 = plt.subplots(nrows=1, ncols=1)
 
-ax2.set_ylabel('Number of Inferred 2-simplices')
+ax2.set_ylabel('Number of Inferred 2-simplices', fontsize=12)
+plt.yticks(fontsize=13)
 parts = ax2.violinplot([vp_two_count_100 , vp_two_count_1000, vp_two_count_10000], positions = [1, 4, 7], showmeans=False, showextrema=False, bw_method=0.12, widths=1.5)
 
 for pc in parts['bodies']:
     pc.set_facecolor('#ff7f00ff')
     pc.set_alpha(1)
 
-parts = ax2.violinplot([fp_two_count_100, fp_two_count_1000, fp_two_count_10000], positions = [2, 5, 8], showmeans=False, showextrema=False, bw_method=0.6, widths=1.5)
+parts = ax2.violinplot([fp_two_count_100, fp_two_count_1000, fp_two_count_10000], positions = [2, 5, 8], showmeans=False, showextrema=False, bw_method=0.3, widths=1.5)
 
 for pc in parts['bodies']:
     pc.set_facecolor('#00a1ffff')
     pc.set_alpha(1)
 
 #set_axis_style(ax1, labels=['100', '1000', '10 000'])
-ax2.set_xticklabels(['100 observations/matrix', '1000 observations/matrix', '10000 observations/matrix'])
+ax2.set_xticklabels(['$100$', '$1\, 000$', '$10\, 000$'])
+plt.xticks(fontsize=12)
 ax2.set_xticks([1.5, 4.5, 7.5])
 
 labels = [(mpatches.Patch(color='#ff7f00ff'), 'True Positives (target = 7)'), (mpatches.Patch(color='#00a1ffff'), 'False Positives (target = 0)')]
 
-plt.legend(*zip(*labels), loc=2)
+plt.legend(*zip(*labels), loc=2, fontsize=11)
+
+ax2.set_aspect(1.0/ax2.get_data_ratio(), adjustable='box')
 
 plt.show()
 

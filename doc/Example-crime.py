@@ -16,7 +16,7 @@ import pandas as pd
 # created files (data_name)
 
 dir_name = 'results'
-data_name = 'crime'
+data_name = 'moreno_crime_crime'
 
 # Create target Directory if doesn't exist
 
@@ -33,15 +33,7 @@ alpha = 0.01
 
 df = pd.read_csv('KONECT_data\out.moreno_crime_crime', sep=' ', skiprows=2, header=None)
 
-print(df[0])
-
-g = df.groupby(0)[1].apply(list).reset_index()
-
-print(g)
-
-k = pd.get_dummies(g[1].apply(pd.Series).stack()).sum(level=0)
-
-print(k)
+k = pd.crosstab(df[0], df[1])
 
 data_matrix = k.to_numpy()
 
@@ -108,10 +100,23 @@ print('Number of triangles : ', count_triangles_csv(data_name + '_asymptotic_tri
 triangles_p_values(data_name, data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '.csv', data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '_pvalues.csv', data_matrix)
 
 ##############################
-# Last step: Extract all 2-simplices
+# Sixth step: Extract all 2-simplices
 
 print("\nStep 6: Extract all 2-simplices")
 
 significant_triplet_from_csv(data_name + '_asymptotic_triangles_' + str(alpha)[2:] + '_pvalues.csv', alpha, data_name + '_asymptotic_2-simplices_' + str(alpha)[2:])
 
-print("2-simplices saved in " + data_name + "_asymptotic_2-simplices.json")
+print("2-simplices saved in " + data_name + '_asymptotic_2-simplices_' + str(alpha)[2:] + '.csv')
+
+##############################
+# Seventh step: Find clicks of size 4 that also form the hull of a tetrahedron
+
+print("\nStep 7: Find clicks of size 4 that also form the hull of a tetrahedron")
+
+g2 = graph_from_2simplices(data_name + '_asymptotic_2-simplices_' + str(alpha)[2:] + '.csv')
+
+save_all_4clics(g2, data_name + '_asymptotic_2-simplices_' + str(alpha)[2:] + '.csv', data_name + '_4clicks')
+
+test_3rd_order_dependencies(data_name + '_4clicks' + '.csv', data_name + '_tetrahedron_pvalue', data_matrix)
+
+extract_3_simplex_from_csv(data_name + '_tetrahedron_pvalue' + '.csv', data_name + '_3-simplices', alpha)

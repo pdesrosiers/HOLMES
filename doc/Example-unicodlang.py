@@ -33,15 +33,7 @@ alpha = 0.01
 
 df = pd.read_csv('KONECT_data\out.unicodelang', sep='\t', skiprows=1, header=None)
 
-print(df)
-
-g = df.groupby(0)[1].apply(list).reset_index()
-
-print(g)
-
-k = pd.get_dummies(g[1].apply(pd.Series).stack()).sum(level=0)
-
-print(k)
+k = pd.crosstab(df[0], df[1])
 
 data_matrix = k.to_numpy().T
 
