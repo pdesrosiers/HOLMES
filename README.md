@@ -4,6 +4,7 @@ HOLMES stands for Higher-Order dependencies with a Log-linear Model Estimation S
 
 The codes are based on the methods developed in Ref. 1.  These methods rely on log-linear models, which are classical statistical tools for discrete multivariate analysis (Ref. 2). The higher-order interactions (Ref. 3) are encoded into mathematical structures that generalize the concept of graph, namely simplicial complexes and hypergraphs.
 
+Note that in its current state, HOLMES can only uncover dependencies of order lower than 4.
 ## Table of content
 
 1. [Usage](#usage)
